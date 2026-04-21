@@ -5,7 +5,7 @@ class GaussianRandomFieldModel:
     """
     Gaussian Random Field (GRF) model for graph-based semi-supervised learning.
     """
-    def __init__(self, graph, labels):
+    def __init__(self, graph):
         # Store the graph and its properties
         self.graph = graph.copy()
         self.nodes = list(graph.nodes())
@@ -25,8 +25,6 @@ class GaussianRandomFieldModel:
             raise ValueError("At least one node must be labeled.")
         if not self.u_idx:
             raise ValueError("At least one node must be unlabeled. Nothing to compute here")
-
-
 
         # Harmonic solution: f_u = (D_uu - W_uu)^-1 * W_ul * f_l
         W_ul = self.W[np.ix_(self.u_idx, self.l_idx)]
