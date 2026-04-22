@@ -47,11 +47,11 @@ class HarmonicGreedySampler:
             labels = self.model.labels.copy()
             labels[self.model.nodes[u_node]] = 1
             label_propagator.fit(labels)
-            risk0 = compute_risk(list(label_propagator.predict_probabilities().values()))
+            risk1 = compute_risk(label_propagator.f_u)
             labels[self.model.nodes[u_node]] = 0
             label_propagator.fit(labels)
-            risk1 = compute_risk(list(label_propagator.predict_probabilities().values()))
-            expected_risk = p1 * risk0 + p0 * risk1
+            risk0 = compute_risk(label_propagator.f_u)
+            expected_risk = p1 * risk1 + p0 * risk0
             if expected_risk < min_expected_risk:
                 min_expected_risk = expected_risk
                 best_node_to_sample = self.model.nodes[u_node]
