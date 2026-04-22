@@ -2,7 +2,9 @@ import networkx as nx
 import numpy as np
 from typing import Any, Dict
 from .parametric_graph_models import GaussianRandomFieldModel
+from .label_propagation import HarmonicLabelPropagator
 from .utils import compute_risk
+
 class HarmonicGreedySampler:
     """
     Harmonic sampler for graph-based semi-supervised learning.
@@ -41,8 +43,8 @@ class HarmonicGreedySampler:
         min_expected_risk = float('inf')
         label_propagator = HarmonicLabelPropagator(self.model.graph)
         # Iterate through candidate nodes to find the one that minimizes future risk
-        for u_node in self.model.u_idx:
-            p1 = self.model.f_u[u_node]
+        for i, u_node in enumerate(self.model.u_idx):
+            p1 = self.model.f_u[i]
             p0 = 1 - p1
             labels = self.model.labels.copy()
             labels[self.model.nodes[u_node]] = 1
