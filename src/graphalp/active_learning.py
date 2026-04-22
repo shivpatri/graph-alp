@@ -37,39 +37,23 @@ class HarmonicGreedySampler:
             return None
 
         
-        # Get current probabilities for unlabeled nodes to calculate the expectation
-        base_probs_arr = self.model.f_u
-        unlabeled_nodes = [self.model.nodes[i] for i in self.model.u_idx]
-        base_probs = dict(zip(unlabeled_nodes, base_probs_arr))
-
         best_node_to_sample = None
         min_expected_risk = float('inf')
-
+        label_propagator = HarmonicLabelPropagator(self.model.graph)
         # Iterate through candidate nodes to find the one that minimizes future risk
-        for u_node in unlabeled_nodes:
-            prob_u = np.clip(base_probs[u_node], 0.0, 1.0)
-
-            # --- Calculate risk if we add (u_node, 1) ---
-            labels_with_1 = {**self.model.labels, u_node: 1.0}
-            try:
-                self.model.fit(labels_with_1)
-                risk_if_1 = compute_risk(self.model.f_u)
-            except ValueError: # This happens if all nodes become labeled
-                risk_if_1 = 0.0
-
-            # --- Calculate risk if we add (u_node, 0) ---
-            labels_with_0 = {**self.model.labels, u_node: 0.0}
-            try:
-                self.model.fit(labels_with_0)
-                risk_if_0 = compute_risk(self.model.f_u)
-            except ValueError: # This happens if all nodes become labeled
-                risk_if_0 = 0.0
-
-            # Calculate expected future risk for this candidate node
-            expected_risk = prob_u * risk_if_1 + (1 - prob_u) * risk_if_0
-
+        for u_node in self.model.u_idx:
+            p1 = self.model.f_u[u_node]
+            p0 = 1 - p1
+            labels = self.model.labels.copy()
+            labels[self.model.nodes[u_node]] = 1
+            label_propagator.fit(labels)
+            risk0 = compute_risk(list(label_propagator.predict_probabilities().values()))
+            labels[self.model.nodes[u_node]] = 0
+            label_propagator.fit(labels)
+            risk1 = compute_risk(list(label_propagator.predict_probabilities().values()))
+            expected_risk = p1 * risk0 + p0 * risk1
             if expected_risk < min_expected_risk:
                 min_expected_risk = expected_risk
-                best_node_to_sample = u_node
-        
+                best_node_to_sample = self.model.nodes[u_node]
+
         return best_node_to_sample
