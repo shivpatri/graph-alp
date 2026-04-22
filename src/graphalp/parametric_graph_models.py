@@ -1,18 +1,19 @@
 import networkx as nx
 import numpy as np
+from typing import Dict, Any
 from .utils import compute_laplacian
 class GaussianRandomFieldModel:
     """
     Gaussian Random Field (GRF) model for graph-based semi-supervised learning.
     """
-    def __init__(self, graph):
+    def __init__(self, graph: nx.Graph) -> None:
         # Store the graph and its properties
         self.graph = graph.copy()
         self.nodes = list(graph.nodes())
         self.W, self.D, self.L = compute_laplacian(self.graph)
 
 
-    def fit(self, labels):
+    def fit(self, labels: Dict[Any, float]) -> None:
         """
         Fit the Gaussian Random Field model.
         """
