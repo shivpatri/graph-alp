@@ -74,3 +74,101 @@ class HarmonicGreedySampler:
                 best_node_to_sample = node_id
 
         return best_node_to_sample
+
+class RandomSampler:
+    """
+    Standard Random Active Learning Sampler.
+    """
+    def __init__(self, graph: nx.Graph) -> None:
+        """
+        Initialize the sampler with the underlying graph structure.
+        """
+        self.nodes = list(graph.nodes())
+        self.labels = {}
+
+    def fit(self, X: Any, y: Any) -> "RandomSampler":
+        """
+        Store the current labels for the graph nodes.
+        """
+        self.labels = dict(zip(X, y))
+        return self
+
+    def sample(self) -> Any:
+        """
+        Sample a node uniformly at random from the unlabeled set.
+        """
+        unlabeled = [n for n in self.nodes if n not in self.labels]
+        return np.random.choice(unlabeled) if unlabeled else None
+
+class S2Sampler:
+    """
+    S2 Active Learning Sampler based on Dasarathy et al. (2015).
+    
+    Algorithm logic:
+    1. Prune edges between nodes with different labels.
+    2. Find the shortest path between a Label 0 node and a Label 1 node.
+    3. Query the middle node of that path.
+    4. Fallback to a secondary sampler if no path exists.
+    """
+    def __init__(self, graph: nx.Graph, fallback_sampler: Any = None) -> None:
+        """
+        Initialize the sampler with a graph and an optional fallback sampler.
+        """
+        self.graph = graph.copy()
+        self.nodes = list(graph.nodes())
+        self.labels = {}
+        self.fallback_sampler = fallback_sampler or RandomSampler(graph)
+
+    def fit(self, X: Any, y: Any) -> "S2Sampler":
+        """
+        Fit both the S2 logic and the fallback sampler.
+        """
+        self.labels = dict(zip(X, y))
+        self.fallback_sampler.fit(X, y)
+        return self
+
+    def sample(self) -> Any:
+        """
+        Find the shortest path between different label sets and sample the middle node.
+        """
+        l0_nodes = [n for n, l in self.labels.items() if l == 0]
+        l1_nodes = [n for n, l in self.labels.items() if l == 1]
+        
+        # If we don't have representatives from both classes, use fallback
+        if not l0_nodes or not l1_nodes:
+            return self.fallback_sampler.sample()
+
+        # 1. Prune edges between nodes with different labels
+        G_prime = self.graph.copy()
+        edges_to_remove = []
+        for u, v in G_prime.edges():
+            lab_u = self.labels.get(u)
+            lab_v = self.labels.get(v)
+            if (lab_u == 0 and lab_v == 1) or (lab_u == 1 and lab_v == 0):
+                edges_to_remove.append((u, v))
+        G_prime.remove_edges_from(edges_to_remove)
+
+        # 2. Find the shortest path between any L0 node and any L1 node
+        min_dist = float('inf')
+        best_path = []
+
+        for n0 in l0_nodes:
+            try:
+                paths = nx.single_source_shortest_path(G_prime, n0)
+                for n1 in l1_nodes:
+                    if n1 in paths:
+                        path = paths[n1]
+                        if len(path) < min_dist:
+                            min_dist = len(path)
+                            best_path = path
+                            if min_dist == 3: break
+                if min_dist == 3: break
+            except Exception:
+                continue
+
+        # 3. If no path exists, use fallback
+        if not best_path:
+            return self.fallback_sampler.sample()
+
+        # 4. Return the middle node of the path
+        return best_path[len(best_path) // 2]
