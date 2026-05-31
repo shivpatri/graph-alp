@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive visual showcase and benchmarks of Graph-Based Semi-Supervised Learning (Label Propagation) and Active Learning algorithms in the GraphALP package. Hosted on GitHub Pages.">
+    <title>GraphALP: Label Propagation & Active Learning Visualizations</title>
+    
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Glow Effects in Background -->
+    <div class="radial-glow glow-1"></div>
+    <div class="radial-glow glow-2"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="logo-area">
+                <span class="logo-icon">▲</span>
+                <h1 id="main-title">GraphALP</h1>
+            </div>
+            <p class="subtitle" id="main-subtitle">Interactive Visual Showcase &amp; Benchmark of Graph-Based Semi-Supervised and Active Learning Algorithms</p>
+            <div class="badge-row">
+                <span class="badge badge-primary">Version 0.1.0</span>
+                <span class="badge badge-secondary">NetworkX &amp; NumPy</span>
+                <span class="badge badge-accent">Interactive Visualizations</span>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="tab-navigation" id="tab-nav-bar">
+            <button class="tab-btn active" id="tab-btn-propagation" onclick="switchTab('propagation')">
+                <span class="tab-icon">✵</span> Label Propagation
+            </button>
+            <button class="tab-btn" id="tab-btn-active" onclick="switchTab('active')">
+                <span class="tab-icon">🎯</span> Active Learning
+            </button>
+            <button class="tab-btn" id="tab-btn-benchmark" onclick="switchTab('benchmark')">
+                <span class="tab-icon">📊</span> Sampler Benchmark
+            </button>
+            <button class="tab-btn" id="tab-btn-simulator" onclick="switchTab('simulator')">
+                <span class="tab-icon">🎮</span> Live Simulator
+            </button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="content-wrapper">
+            
+            <!-- SECTION 1: Label Propagation -->
+            <section id="section-propagation" class="tab-content active-content">
+                <div class="section-intro">
+                    <h2>Label Propagation Algorithms</h2>
+                    <p>Label propagation is a class of semi-supervised learning algorithms that spreads labels from a small set of seed nodes to unlabeled nodes through edges in a graph structure. Watch how different mathematical approaches propagate representations across our connected Stochastic Block Model (SBM) communities.</p>
+                </div>
+
+                <div class="card-grid">
+                    <!-- Harmonic Label Propagator -->
+                    <div class="algo-card" id="card-harmonic">
+                        <div class="algo-visual">
+                            <img src="gifs/harmonic_propagation.gif" alt="Harmonic Label Propagation Animation" class="demo-gif" id="gif-harmonic">
+                            <div class="gif-overlay">
+                                <span>Iterative Jacobi Convergence</span>
+                            </div>
+                        </div>
+                        <div class="algo-details">
+                            <div class="card-header">
+                                <span class="spec-badge">Semi-Supervised</span>
+                                <h3>Harmonic Propagator</h3>
+                            </div>
+                            <p class="algo-desc">Uses Gaussian Random Fields to formulate label propagation as a Dirichlet problem. Unlabeled nodes are assigned the average of their neighbors' values, resulting in continuous probability scores.</p>
+                            
+                            <div class="spec-panel">
+                                <h4>Mathematical Intuition</h4>
+                                <code class="math-block">L_uu * f_u = W_ul * f_l</code>
+                                <p>We animate the Jacobi relaxation steps converging smoothly to the harmonic solution where the boundary labeled seeds are fixed, and unlabeled nodes find equilibrium.</p>
+                            </div>
+                            
+                            <div class="pro-con-grid">
+                                <div class="pc-item pro">
+                                    <h5>✓ Strengths</h5>
+                                    <p>Smooth continuous probabilities, elegant mathematical closed-form solver, fast computation.</p>
+                                </div>
+                                <div class="pc-item con">
+                                    <h5>✗ Limitations</h5>
+                                    <p>Can be sensitive to outlier nodes or narrow bridge connections (label dilution).</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Min-Cut Label Propagator -->
+                    <div class="algo-card" id="card-mincut">
+                        <div class="algo-visual">
+                            <img src="gifs/mincut_propagation.gif" alt="Min-Cut Label Propagation Animation" class="demo-gif" id="gif-mincut">
+                            <div class="gif-overlay">
+                                <span>Max-Flow Min-Cut Partition</span>
+                            </div>
+                        </div>
+                        <div class="algo-details">
+                            <div class="card-header">
+                                <span class="spec-badge badge-red">Combinatorial</span>
+                                <h3>Min-Cut Propagator</h3>
+                            </div>
+                            <p class="algo-desc">Formulates propagation as a network flow problem. Computes the minimum capacity cut (the bottleneck) that splits the graph into source (class 0) and sink (class 1) components.</p>
+                            
+                            <div class="spec-panel">
+                                <h4>Flow formulation</h4>
+                                <code class="math-block">Cut(S, T) = Σ_{u∈S, v∈T} w_uv</code>
+                                <p>The animation details seed nodes connected to virtual Source &amp; Sink terminals, highlighting the exact Neon cut edges (the wall) that segment the clusters.</p>
+                            </div>
+                            
+                            <div class="pro-con-grid">
+                                <div class="pc-item pro">
+                                    <h5>✓ Strengths</h5>
+                                    <p>Guarantees hard, discrete binary separation; optimal for strong structural bottlenecks.</p>
+                                </div>
+                                <div class="pc-item con">
+                                    <h5>✗ Limitations</h5>
+                                    <p>High sensitivity to small perturbations, completely lacks probability confidence measures.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Spectral Label Propagator -->
+                    <div class="algo-card" id="card-spectral">
+                        <div class="algo-visual">
+                            <img src="gifs/spectral_propagation.gif" alt="Spectral Label Propagation Animation" class="demo-gif" id="gif-spectral">
+                            <div class="gif-overlay">
+                                <span>Eigenvector Embedding + SVM</span>
+                            </div>
+                        </div>
+                        <div class="algo-details">
+                            <div class="card-header">
+                                <span class="spec-badge badge-violet">Spectral</span>
+                                <h3>Spectral Propagator</h3>
+                            </div>
+                            <p class="algo-desc">Projects nodes into a low-dimensional space using eigenvectors of the graph Laplacian matrix, then trains an SVM classifier with an RBF kernel on these global spectral coordinates.</p>
+                            
+                            <div class="spec-panel">
+                                <h4>Embedding projection</h4>
+                                <code class="math-block">L * v = λ * v</code>
+                                <p>The visual captures the physical graph, the projection of nodes into 2D Spectral eigenvector space, the RBF decision contours, and the back-projection to the graph.</p>
+                            </div>
+                            
+                            <div class="pro-con-grid">
+                                <div class="pc-item pro">
+                                    <h5>✓ Strengths</h5>
+                                    <p>Leverages global graph topology, robust to local edge noise, SVM kernel captures complex separations.</p>
+                                </div>
+                                <div class="pc-item con">
+                                    <h5>✗ Limitations</h5>
+                                    <p>Computing eigenvectors is expensive for very large graphs; requires tuning SVM hyperparameters.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: Active Learning -->
+            <section id="section-active" class="tab-content">
+                <div class="section-intro">
+                    <h2>Active Learning Samplers</h2>
+                    <p>Active learning seeks to maximize model accuracy with minimal label cost by intelligently choosing which unlabeled nodes to query. Watch how each sampler operates in step-by-step query rounds to resolve class uncertainty quickly.</p>
+                </div>
+
+                <div class="card-grid">
+                    <!-- Harmonic Greedy Sampler -->
+                    <div class="algo-card" id="card-harmonic-greedy">
+                        <div class="algo-visual">
+                            <img src="gifs/harmonic_greedy_sampler.gif" alt="Harmonic Greedy Active Learning" class="demo-gif" id="gif-harmonic-greedy">
+                            <div class="gif-overlay">
+                                <span>Expected Risk Minimization</span>
+                            </div>
+                        </div>
+                        <div class="algo-details">
+                            <div class="card-header">
+                                <span class="spec-badge badge-gold">Optimal</span>
+                                <h3>Harmonic Greedy Sampler</h3>
+                            </div>
+                            <p class="algo-desc">Calculates the expected graph-wide risk reduction if each candidate unlabeled node were to be queried. Selects the node that achieves the highest mathematical reduction in uncertainty.</p>
+                            
+                            <div class="spec-panel">
+                                <h4>Selection Criterion</h4>
+                                <code class="math-block">arg min_{i} Σ_{u} E_{y_i}[ min(p_u, 1-p_u) | y_i ]</code>
+                                <p>Observe how it actively targets critical boundary nodes between clusters to aggressively push down overall graph uncertainty.</p>
+                            </div>
+                            
+                            <div class="pro-con-grid">
+                                <div class="pc-item pro">
+                                    <h5>🎯 Strategy</h5>
+                                    <p>Directly minimizes future expected model error. Extremely efficient; reaches near-optimal accuracy in very few steps.</p>
+                                </div>
+                                <div class="pc-item con">
+                                    <h5>⚡ Overhead</h5>
+                                    <p>Computationally heavy; requires forecasting predictions for every candidate under all label outcomes.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- S2 Sampler -->
+                    <div class="algo-card" id="card-s2">
+                        <div class="algo-visual">
+                            <img src="gifs/s2_sampler.gif" alt="S2 Active Learning" class="demo-gif" id="gif-s2">
+                            <div class="gif-overlay">
+                                <span>Shortest Path Boundary Bisection</span>
+                            </div>
+                        </div>
+                        <div class="algo-details">
+                            <div class="card-header">
+                                <span class="spec-badge badge-teal">Geometric</span>
+                                <h3>S2 Sampler</h3>
+                            </div>
+                            <p class="algo-desc">Based on Dasarathy et al. (2015). Prunes edges with conflicting labels, finds the shortest path between positive and negative nodes, and queries the middle node on that path.</p>
+                            
+                            <div class="spec-panel">
+                                <h4>Geometric Strategy</h4>
+                                <code class="math-block">Path = ShortestPath(L_0, L_1) → Query(Middle)</code>
+                                <p>The animation shows the shortest path highlighted in Gold, bisecting the boundary space. It behaves like binary search on graph geodesic paths.</p>
+                            </div>
+                            
+                            <div class="pro-con-grid">
+                                <div class="pc-item pro">
+                                    <h5>🎯 Strategy</h5>
+                                    <p>Finds the boundary extremely fast. Highly scalable; calculations only involve graph path algorithms.</p>
+                                </div>
+                                <div class="pc-item con">
+                                    <h5>⚡ Overhead</h5>
+                                    <p>Depends on structural connectivity; if classes are disconnected, it falls back to random sampling.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Random Sampler -->
+                    <div class="algo-card" id="card-random">
+                        <div class="algo-visual">
+                            <img src="gifs/random_sampler.gif" alt="Random Active Learning" class="demo-gif" id="gif-random">
+                            <div class="gif-overlay">
+                                <span>Uniform Random Baseline</span>
+                            </div>
+                        </div>
+                        <div class="algo-details">
+                            <div class="card-header">
+                                <span class="spec-badge badge-grey">Baseline</span>
+                                <h3>Random Sampler</h3>
+                            </div>
+                            <p class="algo-desc">Queries nodes uniformly at random from the set of unlabeled nodes. Serves as a standard non-active baseline to measure active learning advantages.</p>
+                            
+                            <div class="spec-panel">
+                                <h4>Selection Criterion</h4>
+                                <code class="math-block">Query( u ∈ Unlabeled ) ~ Uniform()</code>
+                                <p>The animation shows query nodes landing randomly. Notice how it frequently queries nodes in dense regions that are already certain, wasting labels.</p>
+                            </div>
+                            
+                            <div class="pro-con-grid">
+                                <div class="pc-item pro">
+                                    <h5>🎯 Strategy</h5>
+                                    <p>Zero computational cost, provides unbiased samples of the graph node distribution.</p>
+                                </div>
+                                <div class="pc-item con">
+                                    <h5>⚡ Overhead</h5>
+                                    <p>Extremely inefficient. Requires many queries to resolve boundary uncertainty, dragging down performance.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: Benchmark Dashboard -->
+            <section id="section-benchmark" class="tab-content">
+                <div class="section-intro">
+                    <h2>Sampler Benchmark Dashboard</h2>
+                    <p>Compare the quantitative performance of Active Learning Samplers. Below is the real-time graph uncertainty (Expected Risk) plotted as a function of query steps. Graph risk represents the remaining prediction uncertainty across the network.</p>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- Benchmark Graph Card -->
+                    <div class="dashboard-card chart-container">
+                        <h3>Uncertainty (Expected Risk) Reduction Curve</h3>
+                        <div class="chart-wrapper">
+                            <img src="images/risk_comparison.png" alt="Active Learning Risk Reduction Benchmark Curves" class="benchmark-chart" id="img-benchmark-chart">
+                        </div>
+                        <p class="chart-caption">Lower is better. Risk represents the sum of node prediction uncertainties: <code>min(p, 1-p)</code>. Active samplers achieve rapid risk reduction, saving labeling budget.</p>
+                    </div>
+
+                    <!-- Benchmark Insights Card -->
+                    <div class="dashboard-card insights-container">
+                        <h3>Key Benchmark Observations</h3>
+                        
+                        <div class="insight-item">
+                            <div class="insight-num gold-num">1</div>
+                            <div class="insight-text">
+                                <h4>Harmonic Greedy Dominance</h4>
+                                <p><strong>Harmonic Greedy</strong> exhibits the steepest initial descent in graph risk. By calculating the expected risk for every possible query, it identifies the single most optimal node. In our 30-node graph, it reduces risk close to 0 within just 4 queries!</p>
+                            </div>
+                        </div>
+
+                        <div class="insight-item">
+                            <div class="insight-num teal-num">2</div>
+                            <div class="insight-text">
+                                <h4>S2 Path Bisection Efficiency</h4>
+                                <p><strong>S2 Sampler</strong> performs nearly as well as Harmonic Greedy, but with a fraction of the computational cost. By finding the shortest path between opposite labels and querying the center node, it behaves like binary search on graphs, quickly pinpointing the bottleneck bridge.</p>
+                            </div>
+                        </div>
+
+                        <div class="insight-item">
+                            <div class="insight-num grey-num">3</div>
+                            <div class="insight-text">
+                                <h4>Random Sampling Inefficiency</h4>
+                                <p><strong>Random Sampler</strong> risk decreases slowly and with high variance. Because it doesn't utilize structural knowledge or model predictions, it wastes queries in dense regions that are already highly certain, leaving the boundary ambiguous for many steps.</p>
+                            </div>
+                        </div>
+
+                        <div class="spec-panel formula-panel">
+                            <h4>Active Learning Core Takeaway</h4>
+                            <p>For graph-based learning, active querying easily saves **over 60% of labeling budgets** compared to random selection. While Harmonic Greedy is ideal for small to medium graphs, S2 is the perfect candidate for web-scale networks due to its path-based efficiency.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 4: Live Interactive Simulator -->
+            <section id="section-simulator" class="tab-content">
+                <div class="section-intro">
+                    <h2>Live Active Learning Simulator</h2>
+                    <p>Configure a graph structure, label propagator, and active learning sampler, then watch the algorithm query nodes and propagate labels in real time! You can also click on gray nodes to query them manually.</p>
+                </div>
+
+                <div class="simulator-layout">
+                    <!-- Control Settings Panel -->
+                    <div class="sim-card controls-panel">
+                        <h3>Simulation Controls</h3>
+                        
+                        <div class="control-group">
+                            <label for="select-graph">Graph Structure</label>
+                            <select id="select-graph" class="sim-select" onchange="changeGraphType(this.value)">
+                                <option value="grid_cols">20x20 Grid: Left vs Right (Columns)</option>
+                                <option value="grid_rows">20x20 Grid: Top vs Bottom (Rows)</option>
+                                <option value="grid_circ1">20x20 Grid: Top-Left &amp; Bottom-Right Circles</option>
+                                <option value="grid_circ2">20x20 Grid: Bottom-Left &amp; Top-Right Circles</option>
+                                <option value="bipartite">40-Node Connected Bipartite Graph</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="select-propagator">Label Propagation Method</label>
+                            <select id="select-propagator" class="sim-select" onchange="changePropagatorType(this.value)">
+                                <option value="harmonic">Harmonic Propagator (Jacobi solver)</option>
+                                <option value="mincut">Min-Cut Propagator (Ford-Fulkerson flow)</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="select-sampler">Active Learning Sampler</label>
+                            <select id="select-sampler" class="sim-select" onchange="changeSamplerType(this.value)">
+                                <option value="harmonic_greedy">Harmonic Greedy (Expected Risk Minimizer)</option>
+                                <option value="s2">S2 Sampler (Shortest Path Bisection)</option>
+                                <option value="random">Random Sampler (Uniform Baseline)</option>
+                            </select>
+                        </div>
+
+                        <div class="button-grid">
+                            <button class="sim-btn btn-initialize" id="btn-reset" onclick="initializeGraph()">↺ Reset Graph</button>
+                            <button class="sim-btn btn-step" id="btn-sim-step" onclick="executeActiveStep()">⏭ Next Step</button>
+                            <button class="sim-btn btn-play" id="btn-play-pause" onclick="toggleAutoPlay()">▶ Auto Play</button>
+                        </div>
+
+                        <div class="stats-panel">
+                            <h4>Simulation Statistics</h4>
+                            <div class="stat-row">
+                                <span>Active Query Step:</span>
+                                <strong id="sim-current-step">0</strong>
+                            </div>
+                            <div class="stat-row">
+                                <span>Nodes Queried:</span>
+                                <strong id="sim-queried-total">2 / 400</strong>
+                            </div>
+                            <div class="stat-row">
+                                <span>Prediction Accuracy:</span>
+                                <strong id="sim-accuracy">50.0%</strong>
+                            </div>
+                        </div>
+
+                        <div class="hover-info-panel">
+                            <h4>Node Inspector</h4>
+                            <div id="hover-tooltip-panel" class="inspector-box">
+                                <span class="text-muted italic">Hover over a node to inspect...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Visualization Panel -->
+                    <div class="sim-card canvas-panel">
+                        <div class="canvas-header">
+                            <span class="pulse-indicator">● LIVE VISUALIZER</span>
+                            <span class="canvas-help">🖱 Click on gray nodes to manually query</span>
+                        </div>
+                        <div class="canvas-container-box">
+                            <canvas id="simulator-canvas" width="600" height="500"></canvas>
+                        </div>
+                        
+                        <!-- Expected Risk Gauge -->
+                        <div class="risk-gauge-container">
+                            <div class="gauge-header">
+                                <span>Expected Uncertainty (Graph Risk):</span>
+                                <strong id="gauge-risk-value">0.00</strong>
+                            </div>
+                            <div class="gauge-bar-bg">
+                                <div class="gauge-bar-fill" id="gauge-risk-fill" style="width: 100%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Log Viewer -->
+                    <div class="sim-card logs-panel">
+                        <h3>Active Log Stream</h3>
+                        <div class="log-container" id="simulator-log-feed">
+                            <div class="log-line italic text-muted">Initialize the graph to begin logging...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>© 2026 GraphALP Demos. Developed in Python, Jupyter, and Vanilla Web Technologies.</p>
+            <p>Hosted with 💜 on GitHub Pages.</p>
+        </footer>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="js/main.js"></script>
+    <script src="js/precomputed_data.js"></script>
+    <script src="js/interactive.js"></script>
+</body>
+</html>

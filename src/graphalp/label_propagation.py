@@ -159,3 +159,89 @@ class MinCutLabelPropagator():
                 predictions.append(0)
                 
         return predictions
+
+class SpectralLabelPropagator:
+    """
+    Label propagator that uses SVM classification on spectral embeddings of the graph.
+    """
+    def __init__(self, graph: nx.Graph, n_components: int = 2) -> None:
+        """
+        Initialize the propagator with the graph structure and embedding dimensions.
+        """
+        self.graph = graph.copy()
+        self.nodes = list(graph.nodes())
+        self.n_components = n_components
+        
+        # Direct computation using networkx and numpy
+        self.W = nx.adjacency_matrix(self.graph).toarray().astype(float)
+        self.L = nx.laplacian_matrix(self.graph).toarray().astype(float)
+        
+        # Pre-compute spectral embedding for all nodes
+        self.embeddings = self._compute_spectral_embedding()
+    
+    def _compute_spectral_embedding(self) -> np.ndarray:
+        """
+        Compute the spectral embedding (eigenvectors of the Laplacian).
+        """
+        # Compute the spectral embedding of the graph
+        eigenvalues, eigenvectors = np.linalg.eigh(self.L)
+        
+        # Sort the eigenvalues and eigenvectors
+        sorted_indices = np.argsort(eigenvalues)
+        eigenvectors = eigenvectors[:, sorted_indices]
+        
+        # Return the first n_components
+        return eigenvectors[:, :self.n_components]
+
+    def fit(self, X: Any, y: Any) -> "SpectralLabelPropagator":
+        """
+        Train an SVM on the spectral embeddings of the labeled nodes.
+        """
+        self.labels = dict(zip(X, y))
+        self.l_idx = [i for i, n in enumerate(self.nodes) if n in self.labels]
+        
+        if not self.l_idx:
+            raise ValueError("At least one node must be labeled.")
+
+        # Prepare training data from embeddings
+        X_train = self.embeddings[self.l_idx]
+        y_train = np.array(y)
+        
+        # Train SVM (lazy import to avoid dependency if not used)
+        from sklearn.svm import SVC
+        self.svc = SVC(probability=True, kernel='rbf')
+        self.svc.fit(X_train, y_train)
+        
+        return self
+
+    def predict_probabilities(self, X: List[Any]) -> List[float]:
+        """
+        Return the predicted probabilities (confidence) for the provided nodes.
+        """
+        if not hasattr(self, 'svc'):
+            raise RuntimeError("The model must be fitted before calling predict().")
+            
+        # Map node IDs to indices
+        node_to_idx = {node: i for i, node in enumerate(self.nodes)}
+        indices = [node_to_idx[node] for node in X]
+        
+        X_test = self.embeddings[indices]
+        # Get probability for class 1
+        probs = self.svc.predict_proba(X_test)[:, 1]
+        
+        return probs.tolist()
+
+    def predict(self, X: List[Any]) -> List[int]:
+        """
+        Predict labels for the provided nodes using the trained SVM.
+        """
+        if not hasattr(self, 'svc'):
+            raise RuntimeError("The model must be fitted before calling predict().")
+            
+        node_to_idx = {node: i for i, node in enumerate(self.nodes)}
+        indices = [node_to_idx[node] for node in X]
+        
+        X_test = self.embeddings[indices]
+        preds = self.svc.predict(X_test)
+        
+        return preds.astype(int).tolist()
