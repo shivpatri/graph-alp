@@ -5,7 +5,7 @@
 
 // Global State
 let simulatorState = {
-    graphType: 'grid_cols',          // 'grid_cols', 'grid_rows', 'grid_circ1', 'grid_circ2', 'bipartite'
+    graphType: 'grid_cols',          // 'grid_cols', 'grid_rows', 'grid_circ1', 'grid_circ2', 'clustered'
     samplerType: 'harmonic_greedy',   // 'random', 's2', 'harmonic_greedy'
     propagatorType: 'harmonic',      // 'harmonic', 'mincut' (spectral removed)
     
@@ -13,6 +13,7 @@ let simulatorState = {
     edges: [],                       // Adjacency list: array of { u, v }
     adjList: {},                     // Node ID -> list of neighbor IDs
     labeledSet: {},                  // Node ID -> label (0 or 1)
+    featPropFeatures: [],            // Precomputed feature representations for FeatProp
     
     currentStep: 0,
     history: [],                     // Array of risk values for chart plotting
@@ -40,6 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Initialize Default Graph
         initializeGraph();
     }
+    
+    // Initialize Interactive Card Demos
+    initializeCardDemos();
 });
 
 // ---------------------------------------------------------
@@ -56,12 +60,19 @@ function initializeGraph() {
     simulatorState.logFeed = [];
     
     const type = simulatorState.graphType;
-    addLog(`Initializing graph: ${type.toUpperCase()}`);
+    const graphNames = {
+        'grid_cols': 'Graph 1',
+        'grid_rows': 'Graph 2',
+        'grid_circ1': 'Graph 3',
+        'grid_circ2': 'Graph 4',
+        'clustered': 'Graph 5'
+    };
+    addLog(`Initializing graph: ${graphNames[type] || type.toUpperCase()}`);
     
     if (type.startsWith('grid_')) {
         generateGridGraph(type);
-    } else if (type === 'bipartite') {
-        generateBipartiteGraph();
+    } else if (type === 'clustered') {
+        generateClusteredGraph();
     }
     
     // Build Adjacency List
@@ -72,6 +83,9 @@ function initializeGraph() {
         simulatorState.adjList[e.u].push(e.v);
         simulatorState.adjList[e.v].push(e.u);
     });
+    
+    // Precompute FeatProp features
+    precomputeFeatPropFeatures();
     
     // Seed 2 initial random nodes (one from class 0, one from class 1)
     seedInitialLabels();
@@ -151,22 +165,24 @@ function generateGridGraph(type) {
     }
 }
 
-function generateBipartiteGraph() {
-    // 40 nodes: left partition 0..19 (Class 0), right partition 20..39 (Class 1)
-    // Ensures left side has all 0s and right side has all 1s
-    const paddingX = 130;
-    const paddingY = 40;
-    const leftX = paddingX;
-    const rightX = CANVAS_WIDTH - paddingX;
-    const spacing = (CANVAS_HEIGHT - paddingY * 2) / 19;
+function generateClusteredGraph() {
+    // 40 nodes: Cluster 0 (0..19) and Cluster 1 (20..39)
+    const N = 40;
     
-    // Layout and Nodes
-    for (let i = 0; i < 40; i++) {
-        const isRight = i >= 20;
-        const index = isRight ? i - 20 : i;
-        const x = isRight ? rightX : leftX;
-        const y = paddingY + index * spacing;
-        const label = isRight ? 1 : 0; // Left column nodes = 0, Right column nodes = 1
+    // Position Cluster 0 on the left, Cluster 1 on the right
+    // Cluster 0 center: (180, 250), Cluster 1 center: (420, 250)
+    for (let i = 0; i < N; i++) {
+        const isCluster1 = i >= 20;
+        const centerX = isCluster1 ? 420 : 180;
+        const centerY = 250;
+        
+        // Random position within a circle of radius 85
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.sqrt(Math.random()) * 80;
+        const x = centerX + Math.cos(angle) * dist;
+        const y = centerY + Math.sin(angle) * dist;
+        
+        const label = isCluster1 ? 1 : 0;
         
         simulatorState.nodes.push({
             id: i,
@@ -178,28 +194,136 @@ function generateBipartiteGraph() {
         });
     }
     
-    // Build edges from precomputed data (strictly bipartite, no intra-column edges)
-    PRECOMPUTED_BIPARTITE_EDGES.forEach(e => {
-        simulatorState.edges.push({ u: e[0], v: e[1] });
-    });
+    // Generate Stochastic Block Model (SBM) Edges
+    // Intra-cluster probability: 0.28
+    // Inter-cluster probability: 0.02
+    let connected = false;
+    while (!connected) {
+        simulatorState.edges = [];
+        for (let i = 0; i < N; i++) {
+            for (let j = i + 1; j < N; j++) {
+                const cI = i >= 20;
+                const cJ = j >= 20;
+                const p = (cI === cJ) ? 0.28 : 0.02;
+                if (Math.random() < p) {
+                    simulatorState.edges.push({ u: i, v: j });
+                }
+            }
+        }
+        
+        // Connectivity check via Breadth-First Search
+        const visited = new Set();
+        const adj = {};
+        for (let i = 0; i < N; i++) adj[i] = [];
+        simulatorState.edges.forEach(e => {
+            adj[e.u].push(e.v);
+            adj[e.v].push(e.u);
+        });
+        
+        const queue = [0];
+        visited.add(0);
+        while (queue.length > 0) {
+            const u = queue.shift();
+            adj[u].forEach(v => {
+                if (!visited.has(v)) {
+                    visited.add(v);
+                    queue.push(v);
+                }
+            });
+        }
+        
+        if (visited.size === N) {
+            connected = true;
+        } else {
+            // Secure connection by linking unvisited components
+            for (let i = 0; i < N; i++) {
+                if (!visited.has(i)) {
+                    const visitedArr = Array.from(visited);
+                    const target = visitedArr[Math.floor(Math.random() * visitedArr.length)];
+                    simulatorState.edges.push({ u: i, v: target });
+                    visited.add(i);
+                }
+            }
+            connected = true;
+        }
+    }
+}
+
+function getClumpedSeeds(candidates, count) {
+    const candidateIds = new Set(candidates.map(n => n.id));
+    const adj = simulatorState.adjList;
+    
+    // Pick a starting seed node at random
+    const startNode = candidates[Math.floor(Math.random() * candidates.length)];
+    const clump = [startNode];
+    const queue = [startNode.id];
+    const visited = new Set([startNode.id]);
+    
+    while (queue.length > 0 && clump.length < count) {
+        const u = queue.shift();
+        const neighbors = adj[u] || [];
+        
+        // Shuffle neighbors to get a natural clump shape
+        const shuffledNeighbors = [...neighbors].sort(() => 0.5 - Math.random());
+        for (let v of shuffledNeighbors) {
+            if (candidateIds.has(v) && !visited.has(v)) {
+                visited.add(v);
+                clump.push(simulatorState.nodes[v]);
+                queue.push(v);
+                if (clump.length >= count) break;
+            }
+        }
+    }
+    
+    // Fallback in case of isolated nodes
+    while (clump.length < count) {
+        const unvisitedCandidates = candidates.filter(n => !visited.has(n.id));
+        if (unvisitedCandidates.length === 0) break;
+        const extra = unvisitedCandidates[Math.floor(Math.random() * unvisitedCandidates.length)];
+        visited.add(extra.id);
+        clump.push(extra);
+    }
+    
+    return clump;
 }
 
 function seedInitialLabels() {
-    // Find nodes from class 0 and class 1
-    const class0Nodes = simulatorState.nodes.filter(n => n.label === 0);
-    const class1Nodes = simulatorState.nodes.filter(n => n.label === 1);
-    
-    // Pick one at random from each
-    const seed0 = class0Nodes[Math.floor(Math.random() * class0Nodes.length)];
-    const seed1 = class1Nodes[Math.floor(Math.random() * class1Nodes.length)];
-    
-    seed0.isQueried = true;
-    seed1.isQueried = true;
-    
-    simulatorState.labeledSet[seed0.id] = 0;
-    simulatorState.labeledSet[seed1.id] = 1;
-    
-    addLog(`Seeded initial queries: Node ${seed0.id} (Class 0), Node ${seed1.id} (Class 1)`);
+    if (simulatorState.propagatorType === 'mincut') {
+        // Seed 20 clumped nodes total for Min-Cut
+        const class0Nodes = simulatorState.nodes.filter(n => n.label === 0);
+        const class1Nodes = simulatorState.nodes.filter(n => n.label === 1);
+        
+        const seeds0 = getClumpedSeeds(class0Nodes, 10);
+        const seeds1 = getClumpedSeeds(class1Nodes, 10);
+        
+        seeds0.forEach(n => {
+            n.isQueried = true;
+            simulatorState.labeledSet[n.id] = 0;
+        });
+        
+        seeds1.forEach(n => {
+            n.isQueried = true;
+            simulatorState.labeledSet[n.id] = 1;
+        });
+        
+        addLog("Seeded min-cut with 20 clumped seed nodes (10 Class 0, 10 Class 1)");
+    } else {
+        // Find nodes from class 0 and class 1
+        const class0Nodes = simulatorState.nodes.filter(n => n.label === 0);
+        const class1Nodes = simulatorState.nodes.filter(n => n.label === 1);
+        
+        // Pick one at random from each
+        const seed0 = class0Nodes[Math.floor(Math.random() * class0Nodes.length)];
+        const seed1 = class1Nodes[Math.floor(Math.random() * class1Nodes.length)];
+        
+        seed0.isQueried = true;
+        seed1.isQueried = true;
+        
+        simulatorState.labeledSet[seed0.id] = 0;
+        simulatorState.labeledSet[seed1.id] = 1;
+        
+        addLog(`Seeded initial queries: Node ${seed0.id} (Class 0), Node ${seed1.id} (Class 1)`);
+    }
 }
 
 // ---------------------------------------------------------
@@ -212,6 +336,8 @@ function runPropagation() {
         solveHarmonicLP(simulatorState.labeledSet);
     } else if (propType === 'mincut') {
         solveMinCutLP(simulatorState.labeledSet);
+    } else if (propType === 'gcn') {
+        solveGCNLP(simulatorState.labeledSet);
     } else {
         // Fallback in case of spectral
         solveHarmonicLP(simulatorState.labeledSet);
@@ -374,6 +500,115 @@ function solveMinCutLP(labels) {
     });
 }
 
+// C. GCN LP (Kipf & Welling Convolution Solver)
+function solveGCNLP(labels) {
+    const nodes = simulatorState.nodes;
+    const N = nodes.length;
+    const adj = simulatorState.adjList;
+    
+    // 1. Build adjacency with self-loops degree counts
+    const degrees = new Array(N).fill(0);
+    for (let i = 0; i < N; i++) {
+        degrees[i] = adj[i].length + 1; // +1 for self-loop
+    }
+    
+    // 2. Initialize indicator representations H^(0) of shape N x 2
+    // Class 0 -> [1.0, 0.0]
+    // Class 1 -> [0.0, 1.0]
+    // Unlabeled -> [0.0, 0.0] (no initial features to allow scale-invariant diffusion)
+    let H = [];
+    for (let i = 0; i < N; i++) {
+        if (i in labels) {
+            if (labels[i] === 0) {
+                H.push([1.0, 0.0]);
+            } else {
+                H.push([0.0, 1.0]);
+            }
+        } else {
+            H.push([0.0, 0.0]);
+        }
+    }
+    
+    // 3. Compute dynamic geodesic coverage layers (L) based on seed set proximity
+    const seedIndices = Object.keys(labels).map(Number);
+    let n_layers = 2;
+    if (seedIndices.length > 0) {
+        const dist = new Array(N).fill(Infinity);
+        const queue = [];
+        for (let s of seedIndices) {
+            dist[s] = 0;
+            queue.push(s);
+        }
+        
+        let maxDist = 0;
+        let head = 0;
+        while (head < queue.length) {
+            const u = queue[head++];
+            const d = dist[u];
+            if (d > maxDist) {
+                maxDist = d;
+            }
+            const neighbors = adj[u];
+            if (neighbors) {
+                for (let v of neighbors) {
+                    if (dist[v] === Infinity) {
+                        dist[v] = d + 1;
+                        queue.push(v);
+                    }
+                }
+            }
+        }
+        n_layers = maxDist;
+    }
+    if (n_layers === 0) {
+        n_layers = 2;
+    }
+    
+    if (simulatorState.lastGcnLayers !== n_layers) {
+        simulatorState.lastGcnLayers = n_layers;
+        addLog(`GCN dynamically scaled convolution depth to L = ${n_layers} layers (geodesic radius)`);
+    }
+    
+    // 4. Run L layers of GCN convolutions
+    for (let layer = 0; layer < n_layers; layer++) {
+        let next_H = [];
+        for (let i = 0; i < N; i++) {
+            let sum0 = 0;
+            let sum1 = 0;
+            const d_i = degrees[i];
+            
+            // Self loop contribution
+            const w_ii = 1.0 / d_i;
+            sum0 += H[i][0] * w_ii;
+            sum1 += H[i][1] * w_ii;
+            
+            // Neighbors contribution
+            const neighbors = adj[i];
+            if (neighbors) {
+                for (let v of neighbors) {
+                    const d_v = degrees[v];
+                    const weight = 1.0 / Math.sqrt(d_i * d_v);
+                    sum0 += H[v][0] * weight;
+                    sum1 += H[v][1] * weight;
+                }
+            }
+            next_H.push([sum0, sum1]);
+        }
+        H = next_H;
+    }
+    
+    // 5. ApplySoftmax/Ratio normalisation and assign predictions to nodes
+    for (let i = 0; i < N; i++) {
+        const row = H[i];
+        const row_sum = row[0] + row[1];
+        if (row_sum > 0) {
+            nodes[i].predProb = row[1] / row_sum;
+        } else {
+            nodes[i].predProb = 0.5;
+        }
+    }
+}
+
 // ---------------------------------------------------------
 // 3. Active Learning Samplers
 // ---------------------------------------------------------
@@ -398,6 +633,8 @@ function executeActiveStep() {
         selectedNodeId = sampleS2(unlabeled);
     } else if (samplerType === 'harmonic_greedy') {
         selectedNodeId = sampleHarmonicGreedy(unlabeled);
+    } else if (samplerType === 'featprop') {
+        selectedNodeId = sampleFeatProp(unlabeled);
     }
     
     if (selectedNodeId === null) {
@@ -584,6 +821,126 @@ function sampleHarmonicGreedy(unlabeled) {
     return bestNodeId;
 }
 
+// D. FeatProp Sampler (K-Medoids Clustering on Convolved Features)
+function precomputeFeatPropFeatures() {
+    const nodes = simulatorState.nodes;
+    const N = nodes.length;
+    if (N === 0) return;
+    
+    // Initialize node features: normalized [x, y] coordinates
+    const X = [];
+    for (let i = 0; i < N; i++) {
+        const n = nodes[i];
+        if (n.gridX !== undefined && n.gridY !== undefined) {
+            // Grid coordinates
+            X.push([n.gridX, n.gridY]);
+        } else {
+            // Normalized coordinates for bipartite/SBM
+            X.push([n.x / CANVAS_WIDTH, n.y / CANVAS_HEIGHT]);
+        }
+    }
+    
+    // Degrees with self-loops
+    const degrees = new Array(N);
+    for (let i = 0; i < N; i++) {
+        degrees[i] = simulatorState.adjList[i].length + 1;
+    }
+    
+    // Convolve for 2 propagation steps (same as n_prop_steps in python class)
+    let H = X.map(row => [...row]);
+    const n_prop_steps = 2;
+    for (let step = 0; step < n_prop_steps; step++) {
+        let next_H = [];
+        for (let i = 0; i < N; i++) {
+            let sum0 = H[i][0] / degrees[i];
+            let sum1 = H[i][1] / degrees[i];
+            const neighbors = simulatorState.adjList[i] || [];
+            for (let k = 0; k < neighbors.length; k++) {
+                const v = neighbors[k];
+                const weight = 1.0 / Math.sqrt(degrees[i] * degrees[v]);
+                sum0 += H[v][0] * weight;
+                sum1 += H[v][1] * weight;
+            }
+            next_H.push([sum0, sum1]);
+        }
+        H = next_H;
+    }
+    
+    simulatorState.featPropFeatures = H;
+    addLog(`Precomputed FeatProp convolved feature representations (${n_prop_steps} layers)`);
+}
+
+function sampleFeatProp(unlabeled) {
+    const labels = simulatorState.labeledSet;
+    const X_bar = simulatorState.featPropFeatures;
+    const N = simulatorState.nodes.length;
+    
+    if (!X_bar || X_bar.length !== N) {
+        addLog("FeatProp Error: Features not precomputed. Sampling randomly.");
+        return sampleRandom(unlabeled);
+    }
+    
+    const labeled_ids = Object.keys(labels).map(Number);
+    
+    // Euclidean distance in convolved space
+    function dist(i, j) {
+        const dx = X_bar[i][0] - X_bar[j][0];
+        const dy = X_bar[i][1] - X_bar[j][1];
+        return Math.sqrt(dx*dx + dy*dy);
+    }
+    
+    // If no labeled nodes yet, pick the medoid of the entire convolved feature space
+    if (labeled_ids.length === 0) {
+        let min_sum = Infinity;
+        let medoid_idx = 0;
+        for (let i = 0; i < N; i++) {
+            let sum = 0;
+            for (let j = 0; j < N; j++) {
+                sum += dist(i, j);
+            }
+            if (sum < min_sum) {
+                min_sum = sum;
+                medoid_idx = i;
+            }
+        }
+        addLog(`FeatProp selected initial medoid Node ${medoid_idx}`);
+        return medoid_idx;
+    }
+    
+    // Compute distance from all nodes to closest labeled node
+    const min_dists = new Array(N);
+    for (let i = 0; i < N; i++) {
+        let m_d = Infinity;
+        for (let k = 0; k < labeled_ids.length; k++) {
+            const d = dist(i, labeled_ids[k]);
+            if (d < m_d) {
+                m_d = d;
+            }
+        }
+        min_dists[i] = m_d;
+    }
+    
+    let best_candidate = null;
+    let min_total_cost = Infinity;
+    const candidates = unlabeled.map(n => n.id);
+    
+    // Find candidate that minimizes total K-Medoids objective
+    for (let c = 0; c < candidates.length; c++) {
+        const cand = candidates[c];
+        let total_cost = 0;
+        for (let i = 0; i < N; i++) {
+            const d_cand = dist(i, cand);
+            total_cost += Math.min(min_dists[i], d_cand);
+        }
+        if (total_cost < min_total_cost) {
+            min_total_cost = total_cost;
+            best_candidate = cand;
+        }
+    }
+    
+    return best_candidate;
+}
+
 // ---------------------------------------------------------
 // 4. HTML5 Canvas Renderer
 // ---------------------------------------------------------
@@ -642,7 +999,7 @@ function drawGraph() {
     
     // 2. Draw Nodes
     const type = simulatorState.graphType;
-    const rNode = (type === 'bipartite') ? 10 : 6;
+    const rNode = (type === 'clustered') ? 10 : 6;
     
     nodes.forEach(n => {
         ctx.beginPath();
@@ -710,7 +1067,7 @@ function handleCanvasClick(e) {
     let closestNode = null;
     let minDist = Infinity;
     const type = simulatorState.graphType;
-    const clickLimit = (type === 'bipartite') ? 20 : 12;
+    const clickLimit = (type === 'clustered') ? 20 : 12;
     
     simulatorState.nodes.forEach(n => {
         const dx = n.x - mouseX;
@@ -744,7 +1101,7 @@ function handleCanvasMouseMove(e) {
     let closestNode = null;
     let minDist = Infinity;
     const type = simulatorState.graphType;
-    const hoverLimit = (type === 'bipartite') ? 15 : 10;
+    const hoverLimit = (type === 'clustered') ? 15 : 10;
     
     simulatorState.nodes.forEach(n => {
         const dx = n.x - mouseX;
@@ -819,7 +1176,7 @@ function recordCurrentRisk() {
     
     if (riskValEl && riskFillEl) {
         riskValEl.textContent = currentRisk.toFixed(2);
-        const maxRisk = (simulatorState.graphType === 'bipartite') ? 20 : 200;
+        const maxRisk = (simulatorState.graphType === 'clustered') ? 20 : 200;
         const pct = Math.min(100, Math.max(0, (currentRisk / maxRisk) * 100));
         riskFillEl.style.width = `${pct}%`;
         
@@ -918,4 +1275,645 @@ function stopAutoPlay() {
         clearInterval(simulatorState.playInterval);
         simulatorState.playInterval = null;
     }
+}
+
+// ==========================================================================
+// 7. Card Demo Visualizations (Harmonic, Min-Cut, Spectral)
+// ==========================================================================
+
+function initializeCardDemos() {
+    initHarmonicCardDemo();
+    initMinCutCardDemo();
+    initSpectralCardDemo();
+}
+
+// A. Harmonic Card Demo
+let harmonicCard = {
+    canvas: null,
+    ctx: null,
+    nodes: [],
+    values: [0.0, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0],
+    initialValues: [0.0, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0],
+    iter: 0,
+    isPlaying: false,
+    interval: null
+};
+
+function initHarmonicCardDemo() {
+    harmonicCard.canvas = document.getElementById('canvas-harmonic');
+    if (!harmonicCard.canvas) return;
+    harmonicCard.ctx = harmonicCard.canvas.getContext('2d');
+    
+    // Set up nodes
+    const nodeCount = 7;
+    const spacing = 450 / (nodeCount - 1);
+    const startX = 50;
+    const y = 80;
+    
+    harmonicCard.nodes = [];
+    for (let i = 0; i < nodeCount; i++) {
+        harmonicCard.nodes.push({
+            id: i,
+            x: startX + i * spacing,
+            y: y,
+            isSeed: (i === 0 || i === nodeCount - 1),
+            label: (i === 0) ? 0 : ((i === nodeCount - 1) ? 1 : null)
+        });
+    }
+    
+    // Set up controls
+    const playBtn = document.getElementById('btn-harmonic-play');
+    const stepBtn = document.getElementById('btn-harmonic-step');
+    const resetBtn = document.getElementById('btn-harmonic-reset');
+    
+    if (playBtn) playBtn.onclick = toggleHarmonicPlay;
+    if (stepBtn) stepBtn.onclick = stepHarmonicDemo;
+    if (resetBtn) resetBtn.onclick = resetHarmonicDemo;
+    
+    resetHarmonicDemo();
+}
+
+function drawHarmonicDemo() {
+    const ctx = harmonicCard.ctx;
+    if (!ctx) return;
+    
+    ctx.fillStyle = '#0f172a'; // slate-900
+    ctx.fillRect(0, 0, 550, 340);
+    
+    // Draw connections between nodes
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+    ctx.lineWidth = 4;
+    ctx.moveTo(harmonicCard.nodes[0].x, harmonicCard.nodes[0].y);
+    for (let i = 1; i < harmonicCard.nodes.length; i++) {
+        ctx.lineTo(harmonicCard.nodes[i].x, harmonicCard.nodes[i].y);
+    }
+    ctx.stroke();
+    
+    // Draw nodes
+    harmonicCard.nodes.forEach(n => {
+        const val = harmonicCard.values[n.id];
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 22, 0, Math.PI * 2);
+        
+        ctx.fillStyle = getRGBColor(val);
+        ctx.fill();
+        
+        if (n.isSeed) {
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+        } else {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.lineWidth = 1.5;
+        }
+        ctx.stroke();
+        
+        // Draw value text inside/above node
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px Inter';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(val.toFixed(2), n.x, n.y);
+        
+        // Draw seed badge
+        if (n.isSeed) {
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = 'bold 9px Outfit';
+            ctx.fillText("SEED", n.x, n.y - 32);
+        }
+    });
+    
+    // Draw line plot mapping values
+    const chartYStart = 160;
+    const chartYEnd = 290;
+    const chartHeight = chartYEnd - chartYStart;
+    
+    // Draw chart axes
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+    ctx.lineWidth = 1.5;
+    // Y Axis
+    ctx.moveTo(50, chartYStart - 10);
+    ctx.lineTo(50, chartYEnd);
+    // X Axis
+    ctx.lineTo(500, chartYEnd);
+    ctx.stroke();
+    
+    // Draw axis labels
+    ctx.fillStyle = '#64748b';
+    ctx.font = '10px Inter';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText("1.0", 40, chartYStart);
+    ctx.fillText("0.5", 40, chartYStart + chartHeight/2);
+    ctx.fillText("0.0", 40, chartYEnd);
+    
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText("Node Index", 275, chartYEnd + 15);
+    for (let i = 0; i < harmonicCard.nodes.length; i++) {
+        ctx.fillText(i, harmonicCard.nodes[i].x, chartYEnd + 5);
+    }
+    
+    // Draw grid lines
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.08)';
+    ctx.lineWidth = 1;
+    ctx.moveTo(50, chartYStart + chartHeight/2);
+    ctx.lineTo(500, chartYStart + chartHeight/2);
+    ctx.moveTo(50, chartYStart);
+    ctx.lineTo(500, chartYStart);
+    ctx.stroke();
+    
+    // Draw data points and line on the chart
+    ctx.beginPath();
+    ctx.strokeStyle = '#8b5cf6'; // Violet line
+    ctx.lineWidth = 3;
+    let py = chartYEnd - harmonicCard.values[0] * chartHeight;
+    ctx.moveTo(harmonicCard.nodes[0].x, py);
+    for (let i = 1; i < harmonicCard.nodes.length; i++) {
+        py = chartYEnd - harmonicCard.values[i] * chartHeight;
+        ctx.lineTo(harmonicCard.nodes[i].x, py);
+    }
+    ctx.stroke();
+    
+    // Draw dots on data points
+    for (let i = 0; i < harmonicCard.nodes.length; i++) {
+        py = chartYEnd - harmonicCard.values[i] * chartHeight;
+        ctx.beginPath();
+        ctx.arc(harmonicCard.nodes[i].x, py, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#c084fc';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+    
+    // Update iteration label
+    const info = document.getElementById('info-harmonic');
+    if (info) info.textContent = `Iter: ${harmonicCard.iter}`;
+}
+
+function stepHarmonicDemo() {
+    const nextVals = [...harmonicCard.values];
+    const nodeCount = harmonicCard.nodes.length;
+    
+    // Jacobi iteration formula
+    for (let i = 1; i < nodeCount - 1; i++) {
+        nextVals[i] = (harmonicCard.values[i - 1] + harmonicCard.values[i + 1]) / 2;
+    }
+    
+    harmonicCard.values = nextVals;
+    harmonicCard.iter += 1;
+    drawHarmonicDemo();
+}
+
+function toggleHarmonicPlay() {
+    const playBtn = document.getElementById('btn-harmonic-play');
+    if (harmonicCard.isPlaying) {
+        clearInterval(harmonicCard.interval);
+        harmonicCard.isPlaying = false;
+        if (playBtn) playBtn.textContent = '▶ Play';
+    } else {
+        harmonicCard.isPlaying = true;
+        if (playBtn) playBtn.textContent = '❚❚ Pause';
+        harmonicCard.interval = setInterval(() => {
+            stepHarmonicDemo();
+            let maxDiff = 0;
+            for (let i = 1; i < harmonicCard.nodes.length - 1; i++) {
+                const ideal = i / (harmonicCard.nodes.length - 1);
+                maxDiff = Math.max(maxDiff, Math.abs(harmonicCard.values[i] - ideal));
+            }
+            if (maxDiff < 0.005 || harmonicCard.iter > 60) {
+                toggleHarmonicPlay();
+            }
+        }, 350);
+    }
+}
+
+function resetHarmonicDemo() {
+    if (harmonicCard.isPlaying) {
+        toggleHarmonicPlay();
+    }
+    harmonicCard.values = [...harmonicCard.initialValues];
+    harmonicCard.iter = 0;
+    drawHarmonicDemo();
+}
+
+// B. Min-Cut Card Demo
+let mincutCard = {
+    canvas: null,
+    ctx: null,
+    nodes: [],
+    edges: [],
+    reachable: new Set(),
+    nonReachable: new Set(),
+    cutEdges: [],
+    step: 0,
+    playInterval: null,
+    isPlaying: false
+};
+
+function initMinCutCardDemo() {
+    mincutCard.canvas = document.getElementById('canvas-mincut');
+    if (!mincutCard.canvas) return;
+    mincutCard.ctx = mincutCard.canvas.getContext('2d');
+    
+    const coords = [
+        [90, 110], [75, 160], [100, 210], [130, 230], [160, 200],
+        [170, 150], [140, 100], [110, 150], [135, 160], [105, 120],
+        [450, 110], [470, 160], [440, 210], [410, 230], [380, 200],
+        [370, 150], [400, 100], [430, 150], [405, 160], [435, 120],
+        [240, 130], [230, 190], [250, 230], [300, 120], [310, 180],
+        [295, 230], [270, 150], [280, 210], [255, 170], [285, 160]
+    ];
+    
+    mincutCard.nodes = coords.map((c, i) => {
+        return {
+            id: i,
+            x: c[0],
+            y: c[1] - 10,
+            label: (i < 10) ? 0 : ((i < 20) ? 1 : null),
+            isSeed: (i < 20)
+        };
+    });
+    
+    const edgeList = [
+        [0, 1], [0, 6], [0, 9], [1, 2], [1, 7], [1, 8], [2, 3], [2, 7], [3, 4], [3, 8],
+        [4, 5], [4, 8], [5, 6], [5, 8], [6, 9], [7, 8], [7, 9], [0, 7], [2, 4], [1, 5],
+        [10, 11], [10, 16], [10, 19], [11, 12], [11, 17], [11, 18], [12, 13], [12, 17], [13, 14], [13, 18],
+        [14, 15], [14, 18], [15, 16], [15, 18], [16, 19], [17, 18], [17, 19], [10, 17], [12, 14], [11, 15],
+        [20, 21], [20, 26], [21, 22], [21, 27], [22, 25], [23, 24], [23, 29], [24, 25], [24, 29],
+        [26, 27], [26, 28], [27, 28], [20, 28], [23, 26], [21, 28], [24, 27],
+        [5, 20], [4, 21], [3, 22], [8, 28],
+        [23, 15], [24, 14], [25, 13], [29, 18]
+    ];
+    mincutCard.edges = edgeList.map(e => ({ u: e[0], v: e[1] }));
+    
+    mincutCard.reachable = new Set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 21, 22, 26, 27, 28]);
+    mincutCard.nonReachable = new Set([10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 23, 24, 25, 29]);
+    
+    mincutCard.cutEdges = mincutCard.edges.filter(e => {
+        const uReachable = mincutCard.reachable.has(e.u);
+        const vReachable = mincutCard.reachable.has(e.v);
+        return (uReachable && !vReachable) || (!uReachable && vReachable);
+    });
+    
+    const playBtn = document.getElementById('btn-mincut-play');
+    const resetBtn = document.getElementById('btn-mincut-reset');
+    
+    if (playBtn) playBtn.onclick = toggleMinCutPlay;
+    if (resetBtn) resetBtn.onclick = resetMinCutDemo;
+    
+    resetMinCutDemo();
+}
+
+function drawMinCutDemo() {
+    const ctx = mincutCard.ctx;
+    if (!ctx) return;
+    
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, 550, 340);
+    
+    const step = mincutCard.step;
+    
+    const srcX = 35;
+    const srcY = 160;
+    const snkX = 515;
+    const snkY = 160;
+    
+    if (step >= 1) {
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2.5;
+        ctx.fillRect(srcX - 12, srcY - 12, 24, 24);
+        ctx.strokeRect(srcX - 12, srcY - 12, 24, 24);
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px Outfit';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText("s", srcX, srcY);
+        ctx.fillStyle = '#10b981';
+        ctx.font = 'bold 8px Outfit';
+        ctx.fillText("SOURCE", srcX, srcY - 20);
+        
+        ctx.fillStyle = 'rgba(139, 92, 246, 0.15)';
+        ctx.strokeStyle = '#8b5cf6';
+        ctx.fillRect(snkX - 12, snkY - 12, 24, 24);
+        ctx.strokeRect(snkX - 12, snkY - 12, 24, 24);
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px Outfit';
+        ctx.fillText("t", snkX, snkY);
+        ctx.fillStyle = '#8b5cf6';
+        ctx.font = 'bold 8px Outfit';
+        ctx.fillText("SINK", snkX, snkY - 20);
+        
+        ctx.lineWidth = 1.0;
+        ctx.setLineDash([2, 3]);
+        
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.3)';
+        mincutCard.nodes.slice(0, 10).forEach(n => {
+            ctx.beginPath();
+            ctx.moveTo(srcX, srcY);
+            ctx.lineTo(n.x, n.y);
+            ctx.stroke();
+        });
+        
+        ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)';
+        mincutCard.nodes.slice(10, 20).forEach(n => {
+            ctx.beginPath();
+            ctx.moveTo(n.x, n.y);
+            ctx.lineTo(snkX, snkY);
+            ctx.stroke();
+        });
+        
+        ctx.setLineDash([]);
+    }
+    
+    const augmentingEdges = new Set([
+        '5->20', '20->26', '26->27', '27->28', '28->8',
+        '23->15', '24->14', '25->13', '29->18'
+    ]);
+    
+    mincutCard.edges.forEach(e => {
+        const uNode = mincutCard.nodes[e.u];
+        const vNode = mincutCard.nodes[e.v];
+        
+        ctx.beginPath();
+        ctx.moveTo(uNode.x, uNode.y);
+        ctx.lineTo(vNode.x, vNode.y);
+        
+        const isCutEdge = mincutCard.cutEdges.includes(e);
+        
+        if (step >= 3 && isCutEdge) {
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.85)';
+            ctx.lineWidth = 2.0;
+            ctx.setLineDash([3, 4]);
+        } else if (step === 2 && (augmentingEdges.has(`${e.u}->${e.v}`) || augmentingEdges.has(`${e.v}->${e.u}`))) {
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([]);
+        } else {
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+            ctx.lineWidth = 1.2;
+            ctx.setLineDash([]);
+        }
+        ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    
+    mincutCard.nodes.forEach(n => {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 8, 0, Math.PI * 2);
+        
+        let color = '#475569';
+        let border = 'rgba(255, 255, 255, 0.15)';
+        let borderWidth = 1.0;
+        
+        if (step >= 3) {
+            const isReachable = mincutCard.reachable.has(n.id);
+            color = isReachable ? '#2563eb' : '#e11d48';
+            border = isReachable ? '#1d4ed8' : '#be123c';
+            borderWidth = n.isSeed ? 3.0 : 1.0;
+        } else {
+            if (n.isSeed) {
+                color = (n.label === 0) ? '#2563eb' : '#e11d48';
+                border = '#ffffff';
+                borderWidth = 2.0;
+            }
+        }
+        
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = border;
+        ctx.lineWidth = borderWidth;
+        ctx.stroke();
+    });
+    
+    if (step >= 3) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 6]);
+        ctx.moveTo(275, 40);
+        ctx.lineTo(275, 280);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = 'bold 9px Outfit';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText("MIN-CUT WALL boundary", 275, 35);
+    }
+    
+    const info = document.getElementById('info-mincut');
+    if (info) {
+        if (step === 0) info.textContent = "Seeds Placed (20 Nodes)";
+        else if (step === 1) info.textContent = "s-t Network Built";
+        else if (step === 2) info.textContent = "Augmenting Paths Found";
+        else if (step === 3) info.textContent = "Cut Computed & Partitioned";
+    }
+}
+
+function stepMinCutDemo() {
+    mincutCard.step = (mincutCard.step + 1) % 4;
+    drawMinCutDemo();
+}
+
+function toggleMinCutPlay() {
+    const playBtn = document.getElementById('btn-mincut-play');
+    if (mincutCard.isPlaying) {
+        clearInterval(mincutCard.playInterval);
+        mincutCard.isPlaying = false;
+        if (playBtn) playBtn.textContent = '▶ Animate Cut';
+    } else {
+        mincutCard.isPlaying = true;
+        if (playBtn) playBtn.textContent = '❚❚ Pause';
+        mincutCard.playInterval = setInterval(() => {
+            stepMinCutDemo();
+        }, 1500);
+    }
+}
+
+function resetMinCutDemo() {
+    if (mincutCard.isPlaying) {
+        toggleMinCutPlay();
+    }
+    mincutCard.step = 0;
+    drawMinCutDemo();
+}
+
+// C. Spectral Card Demo
+let spectralCard = {
+    canvas: null,
+    ctx: null,
+    nodes: [],
+    edges: [],
+    space: 'physical',
+    transitionT: 0.0,
+    animating: false
+};
+
+function initSpectralCardDemo() {
+    spectralCard.canvas = document.getElementById('canvas-spectral');
+    if (!spectralCard.canvas) return;
+    spectralCard.ctx = spectralCard.canvas.getContext('2d');
+    
+    const physCoords = [
+        [210, 110], [170, 130], [240, 160], [180, 190], [200, 240],
+        [270, 130], [260, 200], [285, 230], [225, 175], [195, 150],
+        
+        [260, 100], [330, 130], [290, 170], [360, 190], [320, 240],
+        [370, 140], [305, 220], [345, 225], [315, 150], [350, 110]
+    ];
+    
+    const specCoords = [
+        [100, 110], [115, 150], [140, 185], [160, 220], [120, 250],
+        [180, 120], [190, 165], [175, 240], [145, 140], [150, 205],
+        
+        [380, 115], [395, 155], [420, 190], [440, 225], [400, 255],
+        [460, 125], [470, 170], [455, 245], [425, 145], [430, 210]
+    ];
+    
+    spectralCard.nodes = physCoords.map((c, i) => {
+        return {
+            id: i,
+            physX: c[0],
+            physY: c[1] - 10,
+            specX: specCoords[i][0] + 25,
+            specY: specCoords[i][1] - 10,
+            drawX: c[0],
+            drawY: c[1] - 10,
+            label: (i < 10) ? 0 : 1,
+            isSeed: (i === 0 || i === 19)
+        };
+    });
+    
+    const edgeList = [
+        [0, 1], [0, 5], [1, 2], [1, 8], [2, 3], [2, 6], [3, 4], [3, 9], [4, 7], [5, 9], [6, 8], [7, 8], [0, 9],
+        [10, 11], [10, 15], [11, 12], [11, 18], [12, 13], [12, 16], [13, 14], [13, 19], [14, 17], [15, 19], [16, 18], [17, 18], [10, 19],
+        [2, 12], [6, 16], [5, 10], [8, 18]
+    ];
+    spectralCard.edges = edgeList.map(e => ({ u: e[0], v: e[1] }));
+    
+    const toggleBtn = document.getElementById('btn-spectral-toggle');
+    if (toggleBtn) toggleBtn.onclick = toggleSpectralSpace;
+    
+    drawSpectralDemo();
+}
+
+function drawSpectralDemo() {
+    const ctx = spectralCard.ctx;
+    if (!ctx) return;
+    
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, 550, 340);
+    
+    const t = spectralCard.transitionT;
+    if (t > 0) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(245, 158, 11, ${t})`;
+        ctx.lineWidth = 2.0;
+        ctx.setLineDash([5, 5]);
+        ctx.moveTo(275, 40);
+        ctx.lineTo(275, 280);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        ctx.fillStyle = `rgba(245, 158, 11, ${t})`;
+        ctx.font = 'bold 9px Outfit';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText("SVM DECISION BOUNDARY", 275, 35);
+    }
+    
+    spectralCard.edges.forEach(e => {
+        const uNode = spectralCard.nodes[e.u];
+        const vNode = spectralCard.nodes[e.v];
+        
+        ctx.beginPath();
+        ctx.moveTo(uNode.drawX, uNode.drawY);
+        ctx.lineTo(vNode.drawX, vNode.drawY);
+        
+        const isCrossEdge = (e.u < 10 && e.v >= 10) || (e.v < 10 && e.u >= 10);
+        if (isCrossEdge) {
+            ctx.strokeStyle = `rgba(148, 163, 184, ${0.35 - t * 0.25})`;
+            ctx.lineWidth = 1.0;
+        } else {
+            const label = (e.u < 10) ? 0 : 1;
+            if (label === 0) {
+                ctx.strokeStyle = `rgba(37, 99, 235, ${0.4 + t * 0.2})`;
+            } else {
+                ctx.strokeStyle = `rgba(225, 29, 72, ${0.4 + t * 0.2})`;
+            }
+            ctx.lineWidth = 1.2;
+        }
+        ctx.stroke();
+    });
+    
+    spectralCard.nodes.forEach(n => {
+        ctx.beginPath();
+        ctx.arc(n.drawX, n.drawY, 8, 0, Math.PI * 2);
+        
+        let color = (n.label === 0) ? '#2563eb' : '#e11d48';
+        let border = 'rgba(255, 255, 255, 0.15)';
+        let borderWidth = 1.0;
+        
+        if (n.isSeed) {
+            border = '#ffffff';
+            borderWidth = 2.0;
+        }
+        
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = border;
+        ctx.lineWidth = borderWidth;
+        ctx.stroke();
+    });
+}
+
+function toggleSpectralSpace() {
+    if (spectralCard.animating) return;
+    
+    const targetSpace = (spectralCard.space === 'physical') ? 'spectral' : 'physical';
+    spectralCard.space = targetSpace;
+    spectralCard.animating = true;
+    
+    const duration = 850;
+    const start = performance.now();
+    
+    const startT = spectralCard.transitionT;
+    const endT = (targetSpace === 'spectral') ? 1.0 : 0.0;
+    
+    const info = document.getElementById('info-spectral');
+    if (info) info.textContent = (targetSpace === 'spectral') ? "Spectral Space (v2 vs v3)" : "Physical Space";
+    
+    function animate(now) {
+        const elapsed = now - start;
+        const progress = Math.min(1.0, elapsed / duration);
+        
+        const ease = progress < 0.5 
+            ? 4 * progress * progress * progress 
+            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+            
+        spectralCard.transitionT = startT + (endT - startT) * ease;
+        
+        spectralCard.nodes.forEach(n => {
+            n.drawX = n.physX + (n.specX - n.physX) * spectralCard.transitionT;
+            n.drawY = n.physY + (n.specY - n.physY) * spectralCard.transitionT;
+        });
+        
+        drawSpectralDemo();
+        
+        if (progress < 1.0) {
+            requestAnimationFrame(animate);
+        } else {
+            spectralCard.animating = false;
+        }
+    }
+    
+    requestAnimationFrame(animate);
 }

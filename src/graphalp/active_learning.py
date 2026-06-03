@@ -1,7 +1,7 @@
 import networkx as nx
 import numpy as np
 from typing import Any, Dict, List
-from .label_propagation import HarmonicLabelPropagator
+from .label_propagation import HarmonicLabelPropagator, GCNLabelPropagator
 from .utils import compute_risk
 
 class HarmonicGreedySampler:
@@ -172,3 +172,98 @@ class S2Sampler:
 
         # 4. Return the middle node of the path
         return best_path[len(best_path) // 2]
+
+
+class FeatPropSampler:
+    """
+    FeatProp active learning sampler based on Wu et al. (2019).
+    Propagates/diffuses node features using the GCN symmetric normalized adjacency operator,
+    then selects query nodes that minimize the K-Medoids clustering distance.
+    """
+    def __init__(self, graph: nx.Graph, features: np.ndarray = None, n_prop_steps: int = 2) -> None:
+        """
+        Initialize the sampler with graph and optional feature matrix.
+        If features is None, defaults to node grid coordinates or spring layout.
+        """
+        self.graph = graph.copy()
+        self.nodes = list(graph.nodes())
+        self.labels = {}
+        
+        # Leverage GCNLabelPropagator for the symmetric normalized adjacency operator A_hat
+        self.gcn = GCNLabelPropagator(self.graph, n_layers=n_prop_steps)
+        
+        # 1. Resolve node features
+        if features is None:
+            pos_list = []
+            try:
+                for n in self.nodes:
+                    if 'pos' in graph.nodes[n]:
+                        pos_list.append(graph.nodes[n]['pos'])
+                    elif 'x' in graph.nodes[n] and 'y' in graph.nodes[n]:
+                        pos_list.append([graph.nodes[n]['x'], graph.nodes[n]['y']])
+                    else:
+                        # Infer 2D coordinates for standard 20x20 grid
+                        if isinstance(n, int) and len(self.nodes) == 400:
+                            pos_list.append([float(n % 20), float(n // 20)])
+                        else:
+                            raise ValueError
+                features = np.array(pos_list)
+            except Exception:
+                # Deterministic spring layout fallback
+                pos_dict = nx.spring_layout(graph, seed=42)
+                features = np.array([pos_dict[n] for n in self.nodes])
+                
+        # 2. Propagate features: X_bar = A_hat^k * X leveraging GCN convolved operator
+        self.X_bar = features.copy()
+        for _ in range(n_prop_steps):
+            self.X_bar = self.gcn.A_hat @ self.X_bar
+            
+    def fit(self, X: Any, y: Any) -> "FeatPropSampler":
+        """
+        Store the current labeled set.
+        """
+        self.labels = dict(zip(X, y))
+        return self
+
+    def sample(self) -> Any:
+        """
+        Sample the next unlabeled node that minimizes the K-Medoids objective
+        on the convolved feature space.
+        """
+        unlabeled = [n for n in self.nodes if n not in self.labels]
+        if not unlabeled:
+            return None
+            
+        labeled_nodes = list(self.labels.keys())
+        # If no labeled nodes yet, pick the medoid of the entire convolved feature space
+        if not labeled_nodes:
+            dists = np.linalg.norm(self.X_bar[:, None, :] - self.X_bar[None, :, :], axis=-1)
+            medoid_idx = np.argmin(dists.sum(axis=1))
+            return self.nodes[medoid_idx]
+            
+        # Map node IDs to indices
+        node_to_idx = {node: idx for idx, node in enumerate(self.nodes)}
+        labeled_indices = [node_to_idx[n] for n in labeled_nodes]
+        unlabeled_indices = [node_to_idx[n] for n in unlabeled]
+        
+        # Compute distances from all nodes to labeled nodes in convolved space
+        # shape: N x len(labeled_nodes)
+        dists_to_labeled = np.linalg.norm(
+            self.X_bar[:, None, :] - self.X_bar[labeled_indices, :], axis=-1
+        )
+        min_dists = dists_to_labeled.min(axis=1)  # shape: N
+        
+        best_candidate = None
+        min_total_cost = float('inf')
+        
+        # Evaluate each candidate's reduction in K-Medoids cost
+        for cand_idx in unlabeled_indices:
+            dists_to_cand = np.linalg.norm(self.X_bar - self.X_bar[cand_idx], axis=-1)
+            new_min_dists = np.minimum(min_dists, dists_to_cand)
+            total_cost = new_min_dists.sum()
+            
+            if total_cost < min_total_cost:
+                min_total_cost = total_cost
+                best_candidate = self.nodes[cand_idx]
+                
+        return best_candidate

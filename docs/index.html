@@ -63,11 +63,14 @@
                 <div class="card-grid">
                     <!-- Harmonic Label Propagator -->
                     <div class="algo-card" id="card-harmonic">
-                        <div class="algo-visual">
-                            <img src="gifs/harmonic_propagation.gif" alt="Harmonic Label Propagation Animation" class="demo-gif" id="gif-harmonic">
-                            <div class="gif-overlay">
-                                <span>Iterative Jacobi Convergence</span>
+                        <div class="algo-visual-interactive" id="visual-harmonic">
+                            <div class="visual-controls">
+                                <button class="visual-btn" id="btn-harmonic-play">▶ Play</button>
+                                <button class="visual-btn" id="btn-harmonic-step">⏭ Step</button>
+                                <button class="visual-btn" id="btn-harmonic-reset">↺ Reset</button>
+                                <span class="visual-info" id="info-harmonic">Iter: 0</span>
                             </div>
+                            <canvas id="canvas-harmonic" width="550" height="340"></canvas>
                         </div>
                         <div class="algo-details">
                             <div class="card-header">
@@ -77,19 +80,10 @@
                             <p class="algo-desc">Uses Gaussian Random Fields to formulate label propagation as a Dirichlet problem. Unlabeled nodes are assigned the average of their neighbors' values, resulting in continuous probability scores.</p>
                             
                             <div class="spec-panel">
-                                <h4>Mathematical Intuition</h4>
-                                <code class="math-block">L_uu * f_u = W_ul * f_l</code>
-                                <p>We animate the Jacobi relaxation steps converging smoothly to the harmonic solution where the boundary labeled seeds are fixed, and unlabeled nodes find equilibrium.</p>
-                            </div>
-                            
-                            <div class="pro-con-grid">
-                                <div class="pc-item pro">
-                                    <h5>✓ Strengths</h5>
-                                    <p>Smooth continuous probabilities, elegant mathematical closed-form solver, fast computation.</p>
-                                </div>
-                                <div class="pc-item con">
-                                    <h5>✗ Limitations</h5>
-                                    <p>Can be sensitive to outlier nodes or narrow bridge connections (label dilution).</p>
+                                <h4>Intuition</h4>
+                                <p>Imagine a game of telephone in a schoolyard. Some kids already know a secret color (like red or blue) and never change their minds. Other kids don't know, so they ask all their friends what color they have, and pick the average color of their friends. This continues until everyone finds a color they are comfortable with.</p>
+                                <div class="citation">
+                                    <strong>Research Citation:</strong> Xiaojin Zhu, Zoubin Ghahramani, and John Lafferty. (2003). <a href="https://dl.acm.org/doi/10.5555/3041838.3041953" target="_blank" class="citation-link">"Semi-Supervised Learning Using Gaussian Fields and Harmonic Functions"</a> in <em>ICML</em>.
                                 </div>
                             </div>
                         </div>
@@ -97,11 +91,13 @@
 
                     <!-- Min-Cut Label Propagator -->
                     <div class="algo-card" id="card-mincut">
-                        <div class="algo-visual">
-                            <img src="gifs/mincut_propagation.gif" alt="Min-Cut Label Propagation Animation" class="demo-gif" id="gif-mincut">
-                            <div class="gif-overlay">
-                                <span>Max-Flow Min-Cut Partition</span>
+                        <div class="algo-visual-interactive" id="visual-mincut">
+                            <div class="visual-controls">
+                                <button class="visual-btn" id="btn-mincut-play">▶ Animate Cut</button>
+                                <button class="visual-btn" id="btn-mincut-reset">↺ Reset</button>
+                                <span class="visual-info" id="info-mincut">Unpartitioned</span>
                             </div>
+                            <canvas id="canvas-mincut" width="550" height="340"></canvas>
                         </div>
                         <div class="algo-details">
                             <div class="card-header">
@@ -111,19 +107,10 @@
                             <p class="algo-desc">Formulates propagation as a network flow problem. Computes the minimum capacity cut (the bottleneck) that splits the graph into source (class 0) and sink (class 1) components.</p>
                             
                             <div class="spec-panel">
-                                <h4>Flow formulation</h4>
-                                <code class="math-block">Cut(S, T) = Σ_{u∈S, v∈T} w_uv</code>
-                                <p>The animation details seed nodes connected to virtual Source &amp; Sink terminals, highlighting the exact Neon cut edges (the wall) that segment the clusters.</p>
-                            </div>
-                            
-                            <div class="pro-con-grid">
-                                <div class="pc-item pro">
-                                    <h5>✓ Strengths</h5>
-                                    <p>Guarantees hard, discrete binary separation; optimal for strong structural bottlenecks.</p>
-                                </div>
-                                <div class="pc-item con">
-                                    <h5>✗ Limitations</h5>
-                                    <p>High sensitivity to small perturbations, completely lacks probability confidence measures.</p>
+                                <h4>Intuition</h4>
+                                <p>Imagine trying to build a fence to separate two rival camps in a forest. You want to cut down as few paths as possible to completely block any way of walking from camp A to camp B. The algorithm finds the easiest place to build that fence, dividing the kids into two clear teams.</p>
+                                <div class="citation">
+                                    <strong>Research Citation:</strong> Avrim Blum and Shuchi Chawla. (2001). <a href="https://dl.acm.org/doi/10.5555/645530.655648" target="_blank" class="citation-link">"Learning from Labeled and Unlabeled Data using Graph Mincuts"</a> in <em>ICML</em>.
                                 </div>
                             </div>
                         </div>
@@ -131,11 +118,12 @@
 
                     <!-- Spectral Label Propagator -->
                     <div class="algo-card" id="card-spectral">
-                        <div class="algo-visual">
-                            <img src="gifs/spectral_propagation.gif" alt="Spectral Label Propagation Animation" class="demo-gif" id="gif-spectral">
-                            <div class="gif-overlay">
-                                <span>Eigenvector Embedding + SVM</span>
+                        <div class="algo-visual-interactive" id="visual-spectral">
+                            <div class="visual-controls">
+                                <button class="visual-btn" id="btn-spectral-toggle">⇆ Toggle Space</button>
+                                <span class="visual-info" id="info-spectral">Physical Space</span>
                             </div>
+                            <canvas id="canvas-spectral" width="550" height="340"></canvas>
                         </div>
                         <div class="algo-details">
                             <div class="card-header">
@@ -145,19 +133,35 @@
                             <p class="algo-desc">Projects nodes into a low-dimensional space using eigenvectors of the graph Laplacian matrix, then trains an SVM classifier with an RBF kernel on these global spectral coordinates.</p>
                             
                             <div class="spec-panel">
-                                <h4>Embedding projection</h4>
-                                <code class="math-block">L * v = λ * v</code>
-                                <p>The visual captures the physical graph, the projection of nodes into 2D Spectral eigenvector space, the RBF decision contours, and the back-projection to the graph.</p>
-                            </div>
-                            
-                            <div class="pro-con-grid">
-                                <div class="pc-item pro">
-                                    <h5>✓ Strengths</h5>
-                                    <p>Leverages global graph topology, robust to local edge noise, SVM kernel captures complex separations.</p>
+                                <h4>Intuition</h4>
+                                <p>Imagine a giant tangled ball of yarn where it is hard to tell who is connected to whom. Instead of untangling it, you stretch the yarn out flat on a table so you can clearly see the separate clumps. Then, you draw a line in the middle to group them.</p>
+                                <div class="citation">
+                                    <strong>Research Citation:</strong> Thorsten Joachims. (2003). <a href="https://dl.acm.org/doi/10.5555/3041838.3041884" target="_blank" class="citation-link">"Transductive Learning via Spectral Graph Partitioning"</a> in <em>ICML</em>.
                                 </div>
-                                <div class="pc-item con">
-                                    <h5>✗ Limitations</h5>
-                                    <p>Computing eigenvectors is expensive for very large graphs; requires tuning SVM hyperparameters.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GCN Label Propagator -->
+                    <div class="algo-card" id="card-gcn">
+                        <div class="algo-visual">
+                            <img src="gifs/gcn_propagation.gif" alt="GCN Label Propagation Animation" class="demo-gif" id="gif-gcn">
+                            <div class="gif-overlay">
+                                <span>Graph Convolutional Message Passing</span>
+                            </div>
+                        </div>
+                        <div class="algo-details">
+                            <div class="card-header">
+                                <span class="spec-badge badge-red">Neural</span>
+                                <h3>GCN Propagator</h3>
+                            </div>
+                            <p class="algo-desc">Applies layer-by-layer symmetric graph convolutions based on Kipf & Welling's neural architecture. Diffuses label representations across local neighborhoods while accounting for node degrees.</p>
+                            
+                            <div class="spec-panel">
+                                <h4>Intuition</h4>
+                                <p>Imagine a school project where kids sit in groups. In each round, every student writes down what they think the topic is by combining their own ideas with what their immediate neighbors tell them. Over multiple rounds, the ideas blend together so the whole group shares the same understanding.</p>
+                                <div class="citation">
+                                    <strong>Research Citation:</strong> Thomas N. Kipf and Max Welling. (2017). <a href="https://arxiv.org/abs/1609.02907" target="_blank" class="citation-link">"Semi-Supervised Classification with Graph Convolutional Networks"</a> in <em>ICLR</em>.
                                 </div>
                             </div>
                         </div>
@@ -189,19 +193,10 @@
                             <p class="algo-desc">Calculates the expected graph-wide risk reduction if each candidate unlabeled node were to be queried. Selects the node that achieves the highest mathematical reduction in uncertainty.</p>
                             
                             <div class="spec-panel">
-                                <h4>Selection Criterion</h4>
-                                <code class="math-block">arg min_{i} Σ_{u} E_{y_i}[ min(p_u, 1-p_u) | y_i ]</code>
-                                <p>Observe how it actively targets critical boundary nodes between clusters to aggressively push down overall graph uncertainty.</p>
-                            </div>
-                            
-                            <div class="pro-con-grid">
-                                <div class="pc-item pro">
-                                    <h5>🎯 Strategy</h5>
-                                    <p>Directly minimizes future expected model error. Extremely efficient; reaches near-optimal accuracy in very few steps.</p>
-                                </div>
-                                <div class="pc-item con">
-                                    <h5>⚡ Overhead</h5>
-                                    <p>Computationally heavy; requires forecasting predictions for every candidate under all label outcomes.</p>
+                                <h4>Intuition</h4>
+                                <p>Imagine you are a teacher trying to help a class understand a lesson, but you only have time to answer a few questions. You ask the student whose question will help clear up the most confusion for the rest of the class, making everyone smarter all at once.</p>
+                                <div class="citation">
+                                    <strong>Research Citation:</strong> Xiaojin Zhu, John Lafferty, and Zoubin Ghahramani. (2003). <a href="https://www.cs.cmu.edu/~jlafferty/pub/active.pdf" target="_blank" class="citation-link">"Combining Active Learning and Semi-Supervised Learning Using Gaussian Fields and Harmonic Functions"</a> in <em>ICML Workshop</em>.
                                 </div>
                             </div>
                         </div>
@@ -223,19 +218,35 @@
                             <p class="algo-desc">Based on Dasarathy et al. (2015). Prunes edges with conflicting labels, finds the shortest path between positive and negative nodes, and queries the middle node on that path.</p>
                             
                             <div class="spec-panel">
-                                <h4>Geometric Strategy</h4>
-                                <code class="math-block">Path = ShortestPath(L_0, L_1) → Query(Middle)</code>
-                                <p>The animation shows the shortest path highlighted in Gold, bisecting the boundary space. It behaves like binary search on graph geodesic paths.</p>
-                            </div>
-                            
-                            <div class="pro-con-grid">
-                                <div class="pc-item pro">
-                                    <h5>🎯 Strategy</h5>
-                                    <p>Finds the boundary extremely fast. Highly scalable; calculations only involve graph path algorithms.</p>
+                                <h4>Intuition</h4>
+                                <p>Imagine you are playing a guessing game on a line of kids standing between a red flag and a blue flag. To find where the red team ends and the blue team begins, you ask the kid standing exactly in the middle. Depending on their answer, you go to the middle of the remaining half, just like a binary search!</p>
+                                <div class="citation">
+                                    <strong>Research Citation:</strong> Gautam Dasarathy, Robert Nowak, and Xiaojin Zhu. (2015). <a href="https://proceedings.neurips.cc/paper/2015/hash/0846824961b588636090a2cf75e3d749-Abstract.html" target="_blank" class="citation-link">"S2: Active Learning on Graphs with Vertex Cut Constraints"</a> in <em>NIPS</em>.
                                 </div>
-                                <div class="pc-item con">
-                                    <h5>⚡ Overhead</h5>
-                                    <p>Depends on structural connectivity; if classes are disconnected, it falls back to random sampling.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FeatProp Sampler -->
+                    <div class="algo-card" id="card-featprop">
+                        <div class="algo-visual">
+                            <img src="gifs/featprop_sampler.gif" alt="FeatProp Active Learning" class="demo-gif" id="gif-featprop">
+                            <div class="gif-overlay">
+                                <span>K-Medoids / Feature Propagation</span>
+                            </div>
+                        </div>
+                        <div class="algo-details">
+                            <div class="card-header">
+                                <span class="spec-badge badge-teal">Representative</span>
+                                <h3>FeatProp Sampler</h3>
+                            </div>
+                            <p class="algo-desc">Propagates node features using graph connections to blend them with neighbors, then selects query nodes by solving a K-Medoids clustering problem to cover the entire graph layout efficiently.</p>
+                            
+                            <div class="spec-panel">
+                                <h4>Intuition</h4>
+                                <p>Imagine trying to pick central locations for ice cream trucks in a city. First, you let neighbors share their location info so everyone's coordinates blend smoothly with their neighbors. Then, you place a truck in the middle of each group so that every kid has to walk the shortest distance possible to get ice cream. In active learning, we query the node that acts as the best central landmark for the remaining unexplored parts of the graph.</p>
+                                <div class="citation">
+                                    <strong>Research Citation:</strong> Yuexin Wu, Yichong Xu, Aarti Singh, Yiming Yang, and Artur Dubrawski. (2019). <a href="https://arxiv.org/abs/1910.07567" target="_blank" class="citation-link">"Active Learning for Graph Neural Networks via Node Feature Propagation"</a> in <em>NeurIPS GRL Workshop</em>.
                                 </div>
                             </div>
                         </div>
@@ -257,19 +268,10 @@
                             <p class="algo-desc">Queries nodes uniformly at random from the set of unlabeled nodes. Serves as a standard non-active baseline to measure active learning advantages.</p>
                             
                             <div class="spec-panel">
-                                <h4>Selection Criterion</h4>
-                                <code class="math-block">Query( u ∈ Unlabeled ) ~ Uniform()</code>
-                                <p>The animation shows query nodes landing randomly. Notice how it frequently queries nodes in dense regions that are already certain, wasting labels.</p>
-                            </div>
-                            
-                            <div class="pro-con-grid">
-                                <div class="pc-item pro">
-                                    <h5>🎯 Strategy</h5>
-                                    <p>Zero computational cost, provides unbiased samples of the graph node distribution.</p>
-                                </div>
-                                <div class="pc-item con">
-                                    <h5>⚡ Overhead</h5>
-                                    <p>Extremely inefficient. Requires many queries to resolve boundary uncertainty, dragging down performance.</p>
+                                <h4>Intuition</h4>
+                                <p>Imagine closing your eyes and picking a random kid from the crowd to ask for their team. It's simple and doesn't take any thinking, but you might waste your time asking kids who are already clearly sitting next to their friends on the same team.</p>
+                                <div class="citation">
+                                    <strong>Research Citation:</strong> Serves as a standard baseline in Active Learning, selecting nodes uniformly at random.
                                 </div>
                             </div>
                         </div>
@@ -277,54 +279,163 @@
                 </div>
             </section>
 
-            <!-- SECTION 3: Benchmark Dashboard -->
+             <!-- SECTION 3: Benchmark Dashboard -->
             <section id="section-benchmark" class="tab-content">
                 <div class="section-intro">
                     <h2>Sampler Benchmark Dashboard</h2>
-                    <p>Compare the quantitative performance of Active Learning Samplers. Below is the real-time graph uncertainty (Expected Risk) plotted as a function of query steps. Graph risk represents the remaining prediction uncertainty across the network.</p>
+                    <p>Compare the quantitative performance of Active Learning Samplers (Harmonic Greedy, S2, FeatProp, Random) across various graph structures. Each benchmark displays the true labels of the graph topology on the left, and its Expected Risk and Prediction Accuracy curves on the right over up to 200 query steps.</p>
                 </div>
 
-                <div class="dashboard-grid">
-                    <!-- Benchmark Graph Card -->
-                    <div class="dashboard-card chart-container">
-                        <h3>Uncertainty (Expected Risk) Reduction Curve</h3>
-                        <div class="chart-wrapper">
-                            <img src="images/risk_comparison.png" alt="Active Learning Risk Reduction Benchmark Curves" class="benchmark-chart" id="img-benchmark-chart">
+                <!-- Sub-tabs for Graphs -->
+                <div class="benchmark-subnav">
+                    <button class="subtab-btn active" id="subtab-graph1" onclick="switchBenchmarkGraph('graph1')">Graph 1</button>
+                    <button class="subtab-btn" id="subtab-graph2" onclick="switchBenchmarkGraph('graph2')">Graph 2</button>
+                    <button class="subtab-btn" id="subtab-graph3" onclick="switchBenchmarkGraph('graph3')">Graph 3</button>
+                    <button class="subtab-btn" id="subtab-graph4" onclick="switchBenchmarkGraph('graph4')">Graph 4</button>
+                    <button class="subtab-btn" id="subtab-graph5" onclick="switchBenchmarkGraph('graph5')">Graph 5</button>
+                </div>
+
+                <!-- Graph 1 Content -->
+                <div id="benchmark-graph1" class="benchmark-content active-content">
+                    <div class="benchmark-layout-grid">
+                        <div class="benchmark-card structure-container">
+                            <h3>Graph 1 Topology &amp; True Labels</h3>
+                            <div class="chart-wrapper">
+                                <img src="images/graph1_structure.png" alt="Graph 1 Structure" class="benchmark-chart">
+                            </div>
+                            <p class="chart-caption">Left-Right community structure (Class 0 in Blue, Class 1 in Red). Large bordered nodes indicate initial seeds.</p>
                         </div>
-                        <p class="chart-caption">Lower is better. Risk represents the sum of node prediction uncertainties: <code>min(p, 1-p)</code>. Active samplers achieve rapid risk reduction, saving labeling budget.</p>
+                        <div class="benchmark-charts-container">
+                            <div class="benchmark-card chart-card">
+                                <h3>Expected Risk Reduction Curve</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph1_risk.png" alt="Graph 1 Risk Curve" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">Graph uncertainty (Expected Risk) over 200 query steps. Lower is better.</p>
+                            </div>
+                            <div class="benchmark-card chart-card">
+                                <h3>Prediction Accuracy Curve</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph1_accuracy.png" alt="Graph 1 Accuracy Curve" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">Classification accuracy over 200 query steps. Higher is better.</p>
+                            </div>
+                        </div>
                     </div>
+                </div>
 
-                    <!-- Benchmark Insights Card -->
-                    <div class="dashboard-card insights-container">
-                        <h3>Key Benchmark Observations</h3>
-                        
-                        <div class="insight-item">
-                            <div class="insight-num gold-num">1</div>
-                            <div class="insight-text">
-                                <h4>Harmonic Greedy Dominance</h4>
-                                <p><strong>Harmonic Greedy</strong> exhibits the steepest initial descent in graph risk. By calculating the expected risk for every possible query, it identifies the single most optimal node. In our 30-node graph, it reduces risk close to 0 within just 4 queries!</p>
+                <!-- Graph 2 Content -->
+                <div id="benchmark-graph2" class="benchmark-content">
+                    <div class="benchmark-layout-grid">
+                        <div class="benchmark-card structure-container">
+                            <h3>Graph 2 Topology &amp; True Labels</h3>
+                            <div class="chart-wrapper">
+                                <img src="images/graph2_structure.png" alt="Graph 2 Structure" class="benchmark-chart">
+                            </div>
+                            <p class="chart-caption">Top-Bottom community structure (Class 0 in Blue, Class 1 in Red). Large bordered nodes indicate initial seeds.</p>
+                        </div>
+                        <div class="benchmark-charts-container">
+                            <div class="benchmark-card chart-card">
+                                <h3>Expected Risk Reduction Curve</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph2_risk.png" alt="Graph 2 Risk Curve" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">Graph uncertainty (Expected Risk) over 200 query steps. Lower is better.</p>
+                            </div>
+                            <div class="benchmark-card chart-card">
+                                <h3>Prediction Accuracy Curve</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph2_accuracy.png" alt="Graph 2 Accuracy Curve" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">Classification accuracy over 200 query steps. Higher is better.</p>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="insight-item">
-                            <div class="insight-num teal-num">2</div>
-                            <div class="insight-text">
-                                <h4>S2 Path Bisection Efficiency</h4>
-                                <p><strong>S2 Sampler</strong> performs nearly as well as Harmonic Greedy, but with a fraction of the computational cost. By finding the shortest path between opposite labels and querying the center node, it behaves like binary search on graphs, quickly pinpointing the bottleneck bridge.</p>
+                <!-- Graph 3 Content -->
+                <div id="benchmark-graph3" class="benchmark-content">
+                    <div class="benchmark-layout-grid">
+                        <div class="benchmark-card structure-container">
+                            <h3>Graph 3 Topology &amp; True Labels</h3>
+                            <div class="chart-wrapper">
+                                <img src="images/graph3_structure.png" alt="Graph 3 Structure" class="benchmark-chart">
+                            </div>
+                            <p class="chart-caption">Diagonal circles structure (Class 0 in Blue, Class 1 in Red). Large bordered nodes indicate initial seeds.</p>
+                        </div>
+                        <div class="benchmark-charts-container">
+                            <div class="benchmark-card chart-card">
+                                <h3>Expected Risk Reduction Curve</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph3_risk.png" alt="Graph 3 Risk Curve" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">Graph uncertainty (Expected Risk) over 200 query steps. Lower is better.</p>
+                            </div>
+                            <div class="benchmark-card chart-card">
+                                <h3>Prediction Accuracy Curve</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph3_accuracy.png" alt="Graph 3 Accuracy Curve" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">Classification accuracy over 200 query steps. Higher is better.</p>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="insight-item">
-                            <div class="insight-num grey-num">3</div>
-                            <div class="insight-text">
-                                <h4>Random Sampling Inefficiency</h4>
-                                <p><strong>Random Sampler</strong> risk decreases slowly and with high variance. Because it doesn't utilize structural knowledge or model predictions, it wastes queries in dense regions that are already highly certain, leaving the boundary ambiguous for many steps.</p>
+                <!-- Graph 4 Content -->
+                <div id="benchmark-graph4" class="benchmark-content">
+                    <div class="benchmark-layout-grid">
+                        <div class="benchmark-card structure-container">
+                            <h3>Graph 4 Topology &amp; True Labels</h3>
+                            <div class="chart-wrapper">
+                                <img src="images/graph4_structure.png" alt="Graph 4 Structure" class="benchmark-chart">
+                            </div>
+                            <p class="chart-caption">Off-diagonal circles structure (Class 0 in Blue, Class 1 in Red). Large bordered nodes indicate initial seeds.</p>
+                        </div>
+                        <div class="benchmark-charts-container">
+                            <div class="benchmark-card chart-card">
+                                <h3>Expected Risk Reduction Curve</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph4_risk.png" alt="Graph 4 Risk Curve" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">Graph uncertainty (Expected Risk) over 200 query steps. Lower is better.</p>
+                            </div>
+                            <div class="benchmark-card chart-card">
+                                <h3>Prediction Accuracy Curve</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph4_accuracy.png" alt="Graph 4 Accuracy Curve" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">Classification accuracy over 200 query steps. Higher is better.</p>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="spec-panel formula-panel">
-                            <h4>Active Learning Core Takeaway</h4>
-                            <p>For graph-based learning, active querying easily saves **over 60% of labeling budgets** compared to random selection. While Harmonic Greedy is ideal for small to medium graphs, S2 is the perfect candidate for web-scale networks due to its path-based efficiency.</p>
+                <!-- Graph 5 Content -->
+                <div id="benchmark-graph5" class="benchmark-content">
+                    <div class="benchmark-layout-grid">
+                        <div class="benchmark-card structure-container">
+                            <h3>Graph 5 Topology &amp; True Labels</h3>
+                            <div class="chart-wrapper">
+                                <img src="images/graph5_structure.png" alt="Graph 5 Structure" class="benchmark-chart">
+                            </div>
+                            <p class="chart-caption">40-Node Clustered Community SBM structure (Class 0 in Blue, Class 1 in Red). Large bordered nodes indicate initial seeds.</p>
+                        </div>
+                        <div class="benchmark-charts-container">
+                            <div class="benchmark-card chart-card">
+                                <h3>Expected Risk Reduction Curve</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph5_risk.png" alt="Graph 5 Risk Curve" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">Graph uncertainty (Expected Risk) over 35 query steps. Lower is better.</p>
+                            </div>
+                            <div class="benchmark-card chart-card">
+                                <h3>Prediction Accuracy Curve</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph5_accuracy.png" alt="Graph 5 Accuracy Curve" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">Classification accuracy over 35 query steps. Higher is better.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -345,11 +456,11 @@
                         <div class="control-group">
                             <label for="select-graph">Graph Structure</label>
                             <select id="select-graph" class="sim-select" onchange="changeGraphType(this.value)">
-                                <option value="grid_cols">20x20 Grid: Left vs Right (Columns)</option>
-                                <option value="grid_rows">20x20 Grid: Top vs Bottom (Rows)</option>
-                                <option value="grid_circ1">20x20 Grid: Top-Left &amp; Bottom-Right Circles</option>
-                                <option value="grid_circ2">20x20 Grid: Bottom-Left &amp; Top-Right Circles</option>
-                                <option value="bipartite">40-Node Connected Bipartite Graph</option>
+                                <option value="grid_cols">Graph 1</option>
+                                <option value="grid_rows">Graph 2</option>
+                                <option value="grid_circ1">Graph 3</option>
+                                <option value="grid_circ2">Graph 4</option>
+                                <option value="clustered">Graph 5</option>
                             </select>
                         </div>
 
@@ -358,6 +469,7 @@
                             <select id="select-propagator" class="sim-select" onchange="changePropagatorType(this.value)">
                                 <option value="harmonic">Harmonic Propagator (Jacobi solver)</option>
                                 <option value="mincut">Min-Cut Propagator (Ford-Fulkerson flow)</option>
+                                <option value="gcn">GCN Propagator (Local Convolutions)</option>
                             </select>
                         </div>
 
@@ -366,6 +478,7 @@
                             <select id="select-sampler" class="sim-select" onchange="changeSamplerType(this.value)">
                                 <option value="harmonic_greedy">Harmonic Greedy (Expected Risk Minimizer)</option>
                                 <option value="s2">S2 Sampler (Shortest Path Bisection)</option>
+                                <option value="featprop">FeatProp Sampler (K-Medoids / Feature Propagation)</option>
                                 <option value="random">Random Sampler (Uniform Baseline)</option>
                             </select>
                         </div>

@@ -35,6 +35,13 @@ function switchTab(tabName) {
         if (tabName === 'simulator' && typeof drawGraph === 'function') {
             drawGraph();
         }
+        
+        // 7. Redraw card canvas visualizations if activating the propagation tab
+        if (tabName === 'propagation') {
+            if (typeof drawHarmonicDemo === 'function') drawHarmonicDemo();
+            if (typeof drawMinCutDemo === 'function') drawMinCutDemo();
+            if (typeof drawSpectralDemo === 'function') drawSpectralDemo();
+        }
     }
 }
 
@@ -63,3 +70,34 @@ document.addEventListener('DOMContentLoaded', () => {
         restartGifs(activeContent);
     }
 });
+
+/**
+ * Switch between different graph benchmark curves in the Sampler Benchmark Dashboard.
+ */
+function switchBenchmarkGraph(graphId) {
+    // 1. Get all sub-tab buttons and content elements
+    const subtabs = document.querySelectorAll('.subtab-btn');
+    const contents = document.querySelectorAll('.benchmark-content');
+    
+    // 2. Remove active state from all buttons
+    subtabs.forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // 3. Remove active content state from all content panels
+    contents.forEach(content => {
+        content.classList.remove('active-content');
+    });
+    
+    // 4. Add active state to selected button
+    const activeBtn = document.getElementById(`subtab-${graphId}`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+    
+    // 5. Add active state to selected content panel
+    const activeContent = document.getElementById(`benchmark-${graphId}`);
+    if (activeContent) {
+        activeContent.classList.add('active-content');
+    }
+}

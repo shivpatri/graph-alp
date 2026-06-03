@@ -245,3 +245,94 @@ class SpectralLabelPropagator:
         preds = self.svc.predict(X_test)
         
         return preds.astype(int).tolist()
+
+
+class GCNLabelPropagator:
+    """
+    Graph Convolutional Label Propagator based on Kipf & Welling's normalized adjacency operator.
+    Propagates labels using: H^(l+1) = D~^-1/2 * A~ * D~^-1/2 * H^(l)
+    where A~ = A + I is the adjacency matrix with self-loops.
+    """
+    def __init__(self, graph: nx.Graph, n_layers: int = 2) -> None:
+        """
+        Initialize the propagator with the underlying graph structure.
+        """
+        self.graph = graph.copy()
+        self.nodes = list(graph.nodes())
+        self.n_layers = n_layers
+        
+        # Build adjacency matrix A
+        A = nx.adjacency_matrix(self.graph).toarray().astype(float)
+        # Add self-loops: A~ = A + I
+        self.A_tilde = A + np.eye(len(self.nodes))
+        
+        # Build diagonal degree matrix D~
+        degrees = self.A_tilde.sum(axis=1)
+        D_tilde_inv_sqrt = np.diag(1.0 / np.sqrt(degrees))
+        
+        # Build Kipf & Welling's Symmetric Normalized Adjacency Operator: D~^-1/2 * A~ * D~^-1/2
+        self.A_hat = D_tilde_inv_sqrt @ self.A_tilde @ D_tilde_inv_sqrt
+        
+    def fit(self, X: Any, y: Any) -> "GCNLabelPropagator":
+        """
+        Propagate label indicators through multiple Graph Convolutional layers.
+        """
+        self.labels = dict(zip(X, y))
+        N = len(self.nodes)
+        
+        # Compute dynamic geodesic coverage hops (L) based on seed set proximity
+        shortest_paths = nx.multi_source_dijkstra_path_length(self.graph, list(self.labels.keys()))
+        self.n_layers = max(shortest_paths.values()) if shortest_paths else 2
+        if self.n_layers == 0:
+            self.n_layers = 2
+            
+        # Initialize label indicator matrix H_0 of shape N x 2
+        # Class 0 seed -> [1.0, 0.0]
+        # Class 1 seed -> [0.0, 1.0]
+        # Unlabeled node -> [0.0, 0.0] (no initial features to allow scale-invariant diffusion)
+        self.H = np.zeros((N, 2))
+        for i, node in enumerate(self.nodes):
+            if node in self.labels:
+                if self.labels[node] == 0:
+                    self.H[i] = [1.0, 0.0]
+                else:
+                    self.H[i] = [0.0, 1.0]
+                
+        # Propagate through L layers of Kipf & Welling convolutions
+        for _ in range(self.n_layers):
+            self.H = self.A_hat @ self.H
+            
+        # Convert raw representation H to soft probabilities using scale-invariant L1 row normalization
+        self.f = {}
+        for i, node in enumerate(self.nodes):
+            row = self.H[i]
+            row_sum = row.sum()
+            if row_sum > 0:
+                prob_1 = row[1] / row_sum
+            else:
+                prob_1 = 0.5 # Neutral grey if no signal has reached
+            self.f[node] = prob_1
+            
+        return self
+
+    def predict_probabilities(self, X: List[Any]) -> List[float]:
+        """
+        Return the predicted probabilities for the requested nodes.
+        """
+        if not hasattr(self, 'f'):
+            raise RuntimeError("The model must be fitted before calling predict().")
+            
+        probs = []
+        for node in X:
+            if node not in self.f:
+                raise ValueError(f"Node {node} was not part of the graph used for fitting.")
+            probs.append(float(self.f[node]))
+            
+        return probs
+
+    def predict(self, X: List[Any]) -> List[int]:
+        """
+        Predict hard labels (0 or 1) based on GCN convolved probabilities.
+        """
+        probs = self.predict_probabilities(X)
+        return [1 if p >= 0.5 else 0 for p in probs]
