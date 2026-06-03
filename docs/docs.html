@@ -232,8 +232,14 @@ print(f"Optimal node to query next: {next_to_query}")</pre>
                         </div>
                     </div>
 
-                    <div style="text-align: center; margin-top: 1.5rem;">
-                        <img src="gifs/harmonic_propagation.gif" alt="Harmonic Propagation Showcase" class="demo-gif" style="max-width: 500px; border-radius: 12px; border: 1px solid var(--card-border);">
+                    <div class="algo-visual-interactive" id="visual-harmonic" style="margin-top: 1.5rem; border-radius: 14px; overflow: hidden; border: 1px solid var(--card-border);">
+                        <div class="visual-controls">
+                            <button class="visual-btn" id="btn-harmonic-play">▶ Play</button>
+                            <button class="visual-btn" id="btn-harmonic-step">⏭ Step</button>
+                            <button class="visual-btn" id="btn-harmonic-reset">↺ Reset</button>
+                            <span class="visual-info" id="info-harmonic">Iter: 0</span>
+                        </div>
+                        <canvas id="canvas-harmonic" width="550" height="340"></canvas>
                     </div>
                 </section>
 
@@ -266,8 +272,13 @@ print(f"Optimal node to query next: {next_to_query}")</pre>
                         </div>
                     </div>
 
-                    <div style="text-align: center; margin-top: 1.5rem;">
-                        <img src="gifs/mincut_propagation.gif" alt="Min-Cut Propagation Showcase" class="demo-gif" style="max-width: 500px; border-radius: 12px; border: 1px solid var(--card-border);">
+                    <div class="algo-visual-interactive" id="visual-mincut" style="margin-top: 1.5rem; border-radius: 14px; overflow: hidden; border: 1px solid var(--card-border);">
+                        <div class="visual-controls">
+                            <button class="visual-btn" id="btn-mincut-play">▶ Animate Cut</button>
+                            <button class="visual-btn" id="btn-mincut-reset">↺ Reset</button>
+                            <span class="visual-info" id="info-mincut">Unpartitioned</span>
+                        </div>
+                        <canvas id="canvas-mincut" width="550" height="340"></canvas>
                     </div>
                 </section>
 
@@ -327,8 +338,12 @@ print(f"Optimal node to query next: {next_to_query}")</pre>
                         </div>
                     </div>
 
-                    <div style="text-align: center; margin-top: 1.5rem;">
-                        <img src="gifs/spectral_propagation.gif" alt="Spectral Propagation Showcase" class="demo-gif" style="max-width: 500px; border-radius: 12px; border: 1px solid var(--card-border);">
+                    <div class="algo-visual-interactive" id="visual-spectral" style="margin-top: 1.5rem; border-radius: 14px; overflow: hidden; border: 1px solid var(--card-border);">
+                        <div class="visual-controls">
+                            <button class="visual-btn" id="btn-spectral-toggle">⇆ Toggle Space</button>
+                            <span class="visual-info" id="info-spectral">Physical Space</span>
+                        </div>
+                        <canvas id="canvas-spectral" width="550" height="340"></canvas>
                     </div>
                 </section>
 
@@ -503,21 +518,162 @@ print(f"Optimal node to query next: {next_to_query}")</pre>
 
                 <!-- Section 6: Benchmarks -->
                 <section id="benchmarks" class="docs-section">
-                    <h2>Simulation Benchmarks</h2>
-                    <p>Quantitative benchmarks are critical to verify active learning benefits. GraphALP includes simulated tests run on multi-community structures (e.g. SBM communities) to trace expected risk reduction and accuracy curves over consecutive query rounds.</p>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
-                        <div style="text-align: center;">
-                            <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Expected Risk Reduction</h4>
-                            <img src="images/graph5_risk.png" alt="Graph 5 Risk Benchmarks" class="benchmark-chart" style="width: 100%; border-radius: 12px;">
-                        </div>
-                        <div style="text-align: center;">
-                            <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Prediction Accuracy</h4>
-                            <img src="images/graph5_accuracy.png" alt="Graph 5 Accuracy Benchmarks" class="benchmark-chart" style="width: 100%; border-radius: 12px;">
+                    <h2>Sampler Benchmark Dashboard</h2>
+                    <p>Compare the quantitative performance of Active Learning Samplers (Harmonic Greedy, S2, FeatProp, Random) across various graph structures. Each benchmark displays the true labels of the graph topology on the left, and its Expected Risk and Prediction Accuracy curves on the right over up to 200 query steps.</p>
+
+                    <!-- Sub-tabs for Graphs -->
+                    <div class="benchmark-subnav">
+                        <button class="subtab-btn active" id="subtab-graph1" onclick="switchBenchmarkGraph('graph1')">Graph 1</button>
+                        <button class="subtab-btn" id="subtab-graph2" onclick="switchBenchmarkGraph('graph2')">Graph 2</button>
+                        <button class="subtab-btn" id="subtab-graph3" onclick="switchBenchmarkGraph('graph3')">Graph 3</button>
+                        <button class="subtab-btn" id="subtab-graph4" onclick="switchBenchmarkGraph('graph4')">Graph 4</button>
+                        <button class="subtab-btn" id="subtab-graph5" onclick="switchBenchmarkGraph('graph5')">Graph 5</button>
+                    </div>
+
+                    <!-- Graph 1 Content -->
+                    <div id="benchmark-graph1" class="benchmark-content active-content">
+                        <div class="benchmark-layout-grid">
+                            <div class="benchmark-card structure-container">
+                                <h3>Graph 1 Topology &amp; True Labels</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph1_structure.png" alt="Graph 1 Structure" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">Left-Right community structure (Class 0 in Blue, Class 1 in Red). Large bordered nodes indicate initial seeds.</p>
+                            </div>
+                            <div class="benchmark-charts-container">
+                                <div class="benchmark-card chart-card">
+                                    <h3>Expected Risk Reduction Curve</h3>
+                                    <div class="chart-wrapper">
+                                        <img src="images/graph1_risk.png" alt="Graph 1 Risk Curve" class="benchmark-chart">
+                                    </div>
+                                    <p class="chart-caption">Graph uncertainty (Expected Risk) over 200 query steps. Lower is better.</p>
+                                </div>
+                                <div class="benchmark-card chart-card">
+                                    <h3>Prediction Accuracy Curve</h3>
+                                    <div class="chart-wrapper">
+                                        <img src="images/graph1_accuracy.png" alt="Graph 1 Accuracy Curve" class="benchmark-chart">
+                                    </div>
+                                    <p class="chart-caption">Classification accuracy over 200 query steps. Higher is better.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <p style="margin-top: 1.5rem;"><strong>Analysis:</strong> The plots demonstrate that <code>HarmonicGreedy</code> (Expected Risk Minimizer) and <code>FeatProp</code> sampler (K-Medoids centroid coverage) reduce model uncertainty (Graph Risk) and boost label prediction accuracy significantly faster than the <code>Random</code> query baseline, requiring up to 50% fewer labeled nodes to reach matching accuracy thresholds.</p>
+                    <!-- Graph 2 Content -->
+                    <div id="benchmark-graph2" class="benchmark-content">
+                        <div class="benchmark-layout-grid">
+                            <div class="benchmark-card structure-container">
+                                <h3>Graph 2 Topology &amp; True Labels</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph2_structure.png" alt="Graph 2 Structure" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">Top-Bottom community structure (Class 0 in Blue, Class 1 in Red). Large bordered nodes indicate initial seeds.</p>
+                            </div>
+                            <div class="benchmark-charts-container">
+                                <div class="benchmark-card chart-card">
+                                    <h3>Expected Risk Reduction Curve</h3>
+                                    <div class="chart-wrapper">
+                                        <img src="images/graph2_risk.png" alt="Graph 2 Risk Curve" class="benchmark-chart">
+                                    </div>
+                                    <p class="chart-caption">Graph uncertainty (Expected Risk) over 200 query steps. Lower is better.</p>
+                                </div>
+                                <div class="benchmark-card chart-card">
+                                    <h3>Prediction Accuracy Curve</h3>
+                                    <div class="chart-wrapper">
+                                        <img src="images/graph2_accuracy.png" alt="Graph 2 Accuracy Curve" class="benchmark-chart">
+                                    </div>
+                                    <p class="chart-caption">Classification accuracy over 200 query steps. Higher is better.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Graph 3 Content -->
+                    <div id="benchmark-graph3" class="benchmark-content">
+                        <div class="benchmark-layout-grid">
+                            <div class="benchmark-card structure-container">
+                                <h3>Graph 3 Topology &amp; True Labels</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph3_structure.png" alt="Graph 3 Structure" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">Diagonal circles structure (Class 0 in Blue, Class 1 in Red). Large bordered nodes indicate initial seeds.</p>
+                            </div>
+                            <div class="benchmark-charts-container">
+                                <div class="benchmark-card chart-card">
+                                    <h3>Expected Risk Reduction Curve</h3>
+                                    <div class="chart-wrapper">
+                                        <img src="images/graph3_risk.png" alt="Graph 3 Risk Curve" class="benchmark-chart">
+                                    </div>
+                                    <p class="chart-caption">Graph uncertainty (Expected Risk) over 200 query steps. Lower is better.</p>
+                                </div>
+                                <div class="benchmark-card chart-card">
+                                    <h3>Prediction Accuracy Curve</h3>
+                                    <div class="chart-wrapper">
+                                        <img src="images/graph3_accuracy.png" alt="Graph 3 Accuracy Curve" class="benchmark-chart">
+                                    </div>
+                                    <p class="chart-caption">Classification accuracy over 200 query steps. Higher is better.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Graph 4 Content -->
+                    <div id="benchmark-graph4" class="benchmark-content">
+                        <div class="benchmark-layout-grid">
+                            <div class="benchmark-card structure-container">
+                                <h3>Graph 4 Topology &amp; True Labels</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph4_structure.png" alt="Graph 4 Structure" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">Off-diagonal circles structure (Class 0 in Blue, Class 1 in Red). Large bordered nodes indicate initial seeds.</p>
+                            </div>
+                            <div class="benchmark-charts-container">
+                                <div class="benchmark-card chart-card">
+                                    <h3>Expected Risk Reduction Curve</h3>
+                                    <div class="chart-wrapper">
+                                        <img src="images/graph4_risk.png" alt="Graph 4 Risk Curve" class="benchmark-chart">
+                                    </div>
+                                    <p class="chart-caption">Graph uncertainty (Expected Risk) over 200 query steps. Lower is better.</p>
+                                </div>
+                                <div class="benchmark-card chart-card">
+                                    <h3>Prediction Accuracy Curve</h3>
+                                    <div class="chart-wrapper">
+                                        <img src="images/graph4_accuracy.png" alt="Graph 4 Accuracy Curve" class="benchmark-chart">
+                                    </div>
+                                    <p class="chart-caption">Classification accuracy over 200 query steps. Higher is better.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Graph 5 Content -->
+                    <div id="benchmark-graph5" class="benchmark-content">
+                        <div class="benchmark-layout-grid">
+                            <div class="benchmark-card structure-container">
+                                <h3>Graph 5 Topology &amp; True Labels</h3>
+                                <div class="chart-wrapper">
+                                    <img src="images/graph5_structure.png" alt="Graph 5 Structure" class="benchmark-chart">
+                                </div>
+                                <p class="chart-caption">40-Node Clustered Community SBM structure (Class 0 in Blue, Class 1 in Red). Large bordered nodes indicate initial seeds.</p>
+                            </div>
+                            <div class="benchmark-charts-container">
+                                <div class="benchmark-card chart-card">
+                                    <h3>Expected Risk Reduction Curve</h3>
+                                    <div class="chart-wrapper">
+                                        <img src="images/graph5_risk.png" alt="Graph 5 Risk Curve" class="benchmark-chart">
+                                    </div>
+                                    <p class="chart-caption">Graph uncertainty (Expected Risk) over 35 query steps. Lower is better.</p>
+                                </div>
+                                <div class="benchmark-card chart-card">
+                                    <h3>Prediction Accuracy Curve</h3>
+                                    <div class="chart-wrapper">
+                                        <img src="images/graph5_accuracy.png" alt="Graph 5 Accuracy Curve" class="benchmark-chart">
+                                    </div>
+                                    <p class="chart-caption">Classification accuracy over 35 query steps. Higher is better.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </section>
             </main>
         </div>
@@ -530,6 +686,9 @@ print(f"Optimal node to query next: {next_to_query}")</pre>
     </div>
 
     <!-- Custom JS files -->
+    <script src="js/main.js"></script>
+    <script src="js/precomputed_data.js"></script>
+    <script src="js/interactive.js"></script>
     <script src="js/docs.js"></script>
 </body>
 </html>

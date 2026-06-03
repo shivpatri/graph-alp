@@ -143,15 +143,55 @@ for step in range(5):
 
 Under the `examples/` directory, you can find benchmark scripts comparing performance curves (graph uncertainty vs. classification accuracy) over multiple query steps. 
 
-### SBM Community Structure (Graph 5 Benchmark)
+Below are the quantitative benchmark results comparing sampler performance across all 5 test graphs:
 
-Here is a quantitative comparison showing how different active learning samplers reduce uncertainty (Graph Risk) and raise accuracy on a clustered Stochastic Block Model:
+<details>
+<summary><b>📈 Graph 1: Grid Columns (Left vs. Right Community)</b></summary>
 
-| SBM Community Topology | Expected Risk Reduction | Prediction Accuracy |
+| Topology & Seeds | Expected Risk Reduction | Prediction Accuracy |
 | :---: | :---: | :---: |
-| ![Graph 5 Topology](docs/images/graph5_structure.png) | ![Risk Reduction](docs/images/graph5_risk.png) | ![Prediction Accuracy](docs/images/graph5_accuracy.png) |
+| ![Graph 1 Topology](docs/images/graph1_structure.png) | ![Graph 1 Risk](docs/images/graph1_risk.png) | ![Graph 1 Accuracy](docs/images/graph1_accuracy.png) |
+
+</details>
+
+<details>
+<summary><b>📈 Graph 2: Grid Rows (Top vs. Bottom Community)</b></summary>
+
+| Topology & Seeds | Expected Risk Reduction | Prediction Accuracy |
+| :---: | :---: | :---: |
+| ![Graph 2 Topology](docs/images/graph2_structure.png) | ![Graph 2 Risk](docs/images/graph2_risk.png) | ![Graph 2 Accuracy](docs/images/graph2_accuracy.png) |
+
+</details>
+
+<details>
+<summary><b>📈 Graph 3: Diagonal Circles</b></summary>
+
+| Topology & Seeds | Expected Risk Reduction | Prediction Accuracy |
+| :---: | :---: | :---: |
+| ![Graph 3 Topology](docs/images/graph3_structure.png) | ![Graph 3 Risk](docs/images/graph3_risk.png) | ![Graph 3 Accuracy](docs/images/graph3_accuracy.png) |
+
+</details>
+
+<details>
+<summary><b>📈 Graph 4: Off-Diagonal Circles</b></summary>
+
+| Topology & Seeds | Expected Risk Reduction | Prediction Accuracy |
+| :---: | :---: | :---: |
+| ![Graph 4 Topology](docs/images/graph4_structure.png) | ![Graph 4 Risk](docs/images/graph4_risk.png) | ![Graph 4 Accuracy](docs/images/graph4_accuracy.png) |
+
+</details>
+
+<details>
+<summary><b>📈 Graph 5: Clustered SBM (40-Node Stochastic Block Model)</b></summary>
+
+| Topology & Seeds | Expected Risk Reduction | Prediction Accuracy |
+| :---: | :---: | :---: |
+| ![Graph 5 Topology](docs/images/graph5_structure.png) | ![Graph 5 Risk](docs/images/graph5_risk.png) | ![Graph 5 Accuracy](docs/images/graph5_accuracy.png) |
+
+</details>
 
 As shown above, active samplers like **Harmonic Greedy** and **FeatProp** consistently outperform the **Random** baseline by targeting bottleneck boundary nodes and representative cluster centroids.
+
 
 ---
 
