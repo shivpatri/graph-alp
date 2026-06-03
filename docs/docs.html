@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Technical documentation and API reference for the GraphALP package, including label propagation models and active learning samplers.">
+    <title>GraphALP: API Documentation & Reference Guide</title>
+    
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Shared stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Glow Effects in Background -->
+    <div class="radial-glow glow-1"></div>
+    <div class="radial-glow glow-2"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="logo-area">
+                <span class="logo-icon">▲</span>
+                <h1>GraphALP Documentation</h1>
+            </div>
+            <p class="subtitle">Comprehensive API reference, mathematical formulations, and visual guides for the GraphALP package</p>
+            <div class="badge-row" style="margin-bottom: 2rem;">
+                <span class="badge badge-primary">Version 0.1.0</span>
+                <span class="badge badge-secondary">API Docs</span>
+                <a href="index.html" class="badge badge-accent" style="text-decoration: none; cursor: pointer;">← Back to Demo Dashboard</a>
+            </div>
+        </header>
+
+        <!-- Docs Layout Grid -->
+        <div class="docs-layout">
+            <!-- Sidebar Navigation -->
+            <aside class="docs-sidebar">
+                <div class="sidebar-search">
+                    <label for="docs-search" style="display: none;">Search Docs</label>
+                    <input type="text" id="docs-search" placeholder="🔍 Search API & Docs..." onkeyup="filterDocs()">
+                </div>
+                
+                <nav class="nav-section">
+                    <h4>Getting Started</h4>
+                    <ul>
+                        <li><a href="#intro" class="active">Introduction</a></li>
+                        <li><a href="#install">Installation</a></li>
+                        <li><a href="#quickstart">Quickstart</a></li>
+                    </ul>
+                </nav>
+
+                <nav class="nav-section">
+                    <h4>Label Propagation API</h4>
+                    <ul>
+                        <li><a href="#harmonic-prop">HarmonicPropagator</a></li>
+                        <li><a href="#mincut-prop">MinCutPropagator</a></li>
+                        <li><a href="#spectral-prop">SpectralPropagator</a></li>
+                        <li><a href="#gcn-prop">GCNPropagator</a></li>
+                    </ul>
+                </nav>
+
+                <nav class="nav-section">
+                    <h4>Active Learning API</h4>
+                    <ul>
+                        <li><a href="#harmonic-greedy">HarmonicGreedySampler</a></li>
+                        <li><a href="#s2-sampler">S2Sampler</a></li>
+                        <li><a href="#featprop-sampler">FeatPropSampler</a></li>
+                        <li><a href="#random-sampler">RandomSampler</a></li>
+                    </ul>
+                </nav>
+
+                <nav class="nav-section">
+                    <h4>Benchmarks</h4>
+                    <ul>
+                        <li><a href="#benchmarks">Simulation Results</a></li>
+                    </ul>
+                </nav>
+            </aside>
+
+            <!-- Main Docs Content -->
+            <main class="docs-content">
+                <!-- Section 1: Introduction -->
+                <section id="intro" class="docs-section">
+                    <h2>Introduction</h2>
+                    <p><strong>GraphALP</strong> is a Python package designed for researchers and educators exploring <strong>Graph-Based Semi-Supervised Learning</strong> and <strong>Active Learning on Graphs</strong>. In many real-world scenarios, network data is abundant but labeling nodes is highly expensive. GraphALP bridges this gap by offering two main pillars:</p>
+                    <ol style="margin-left: 2rem; color: var(--text-secondary); margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <li><strong>Label Propagators:</strong> Semi-supervised models that diffuse labels from seed nodes to unlabeled nodes via graph topology.</li>
+                        <li><strong>Active Samplers:</strong> Algorithms that select the most informative nodes to query next, maximizing accuracy while minimizing annotation costs.</li>
+                    </ol>
+                    <p>All core implementations are written transparently in Python, relying on <code>NetworkX</code> for graph representations and <code>NumPy</code>/<code>scikit-learn</code> for mathematical solutions.</p>
+                </section>
+
+                <!-- Section 2: Installation -->
+                <section id="install" class="docs-section">
+                    <h2>Installation</h2>
+                    <p>GraphALP is currently structured for developer installations. You can install it locally in editable mode:</p>
+                    
+                    <div class="code-block-wrapper">
+                        <div class="code-header">
+                            <span>bash</span>
+                            <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+                        </div>
+                        <pre>git clone https://github.com/username/graph-alp.git
+cd graph-alp
+pip install -e .</pre>
+                    </div>
+
+                    <p><strong>System Requirements:</strong> Python 3.8+ is required. The library depends on <code>numpy</code>, <code>networkx</code>, and <code>scikit-learn</code>.</p>
+                </section>
+
+                <!-- Section 3: Quickstart -->
+                <section id="quickstart" class="docs-section">
+                    <h2>Quickstart Guide</h2>
+                    <p>Below is a complete, copy-pasteable example running label propagation and active sampling on a standard graph:</p>
+                    
+                    <div class="code-block-wrapper">
+                        <div class="code-header">
+                            <span>python</span>
+                            <button class="copy-btn" onclick="copyCode(this)">📋 Copy</button>
+                        </div>
+                        <pre>import networkx as nx
+from graphalp import HarmonicLabelPropagator, HarmonicGreedySampler
+
+# 1. Initialize a graph
+G = nx.karate_club_graph()
+
+# 2. Define initial seed nodes
+X_labeled = [0, 33]
+y_labeled = [0, 1]
+
+# 3. Predict unlabeled nodes using the Harmonic Propagator
+prop = HarmonicLabelPropagator(G)
+prop.fit(X_labeled, y_labeled)
+unlabeled = [n for n in G.nodes() if n not in X_labeled]
+probs = prop.predict_probabilities(unlabeled)
+print(f"Initial predicted probability for Node {unlabeled[0]}: {probs[0]:.4f}")
+
+# 4. Use Active Learning to find the next node to label
+sampler = HarmonicGreedySampler(G)
+sampler.fit(X_labeled, y_labeled)
+next_to_query = sampler.sample()
+print(f"Optimal node to query next: {next_to_query}")</pre>
+                    </div>
+                </section>
+
+                <!-- Section 4: Label Propagation API -->
+                <section id="harmonic-prop" class="docs-section">
+                    <h2>HarmonicLabelPropagator</h2>
+                    <p>The harmonic propagator models label diffusion as a Dirichlet problem on Gaussian Random Fields. Labeled nodes act as fixed boundary conditions (sources/sinks), and unlabeled node probabilities are calculated by solving a system of linear equations derived from the graph Laplacian matrix.</p>
+                    
+                    <div class="math-block">
+                        L_uu * f_u = W_ul * f_l
+                    </div>
+
+                    <div class="api-class-block">
+                        <div class="api-class-header">
+                            <span class="keyword">class</span> graphalp.label_propagation.<span class="name">HarmonicLabelPropagator</span><span class="params">(graph)</span>
+                        </div>
+                        <div class="api-desc">
+                            Gaussian Random Field model for graph-based semi-supervised learning.
+                        </div>
+                        
+                        <div class="api-table-wrapper">
+                            <table class="api-table">
+                                <thead>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="param-name">graph</td>
+                                        <td class="param-type">nx.Graph</td>
+                                        <td class="param-desc">The NetworkX graph structure to diffuse labels over.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="api-methods-title">Methods</div>
+                        
+                        <!-- fit method -->
+                        <div class="api-method-block">
+                            <div class="api-method-header">
+                                <span class="name">fit</span><span class="params">(X, y)</span>
+                            </div>
+                            <p class="api-desc">Solves the Dirichlet system using the graph Laplacian matrix on current labels.</p>
+                            <div class="api-table-wrapper">
+                                <table class="api-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Arg</th>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="param-name">X</td>
+                                            <td class="param-type">Iterable</td>
+                                            <td class="param-desc">Node identifiers for the labeled seed set.</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="param-name">y</td>
+                                            <td class="param-type">Iterable</td>
+                                            <td class="param-desc">Class labels corresponding to nodes in X (0 or 1).</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- predict_probabilities method -->
+                        <div class="api-method-block">
+                            <div class="api-method-header">
+                                <span class="name">predict_probabilities</span><span class="params">(X)</span>
+                            </div>
+                            <p class="api-desc">Returns the predicted soft probabilities (continuous values in range [0, 1]) for a list of node IDs.</p>
+                        </div>
+                        
+                        <!-- predict method -->
+                        <div class="api-method-block">
+                            <div class="api-method-header">
+                                <span class="name">predict</span><span class="params">(X)</span>
+                            </div>
+                            <p class="api-desc">Returns hard binary classifications (0 or 1) by thresholding predicted probabilities at 0.5.</p>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 1.5rem;">
+                        <img src="gifs/harmonic_propagation.gif" alt="Harmonic Propagation Showcase" class="demo-gif" style="max-width: 500px; border-radius: 12px; border: 1px solid var(--card-border);">
+                    </div>
+                </section>
+
+                <section id="mincut-prop" class="docs-section">
+                    <h2>MinCutLabelPropagator</h2>
+                    <p>The min-cut propagator approaches semi-supervised learning as a network flow capacity problem. It finds the minimum cut (bottleneck) separating positive seed nodes (connected to source) and negative seed nodes (connected to sink), partition-labeling the nodes accordingly.</p>
+
+                    <div class="api-class-block">
+                        <div class="api-class-header">
+                            <span class="keyword">class</span> graphalp.label_propagation.<span class="name">MinCutLabelPropagator</span><span class="params">(graph)</span>
+                        </div>
+                        <div class="api-desc">
+                            Combinatorial s-t min-cut model using NetworkX minimum cut algorithms.
+                        </div>
+
+                        <div class="api-methods-title">Methods</div>
+                        
+                        <div class="api-method-block">
+                            <div class="api-method-header">
+                                <span class="name">fit</span><span class="params">(X, y)</span>
+                            </div>
+                            <p class="api-desc">Computes the min-cut partition directly on the graph structure with source/sink augmentations.</p>
+                        </div>
+
+                        <div class="api-method-block">
+                            <div class="api-method-header">
+                                <span class="name">predict</span><span class="params">(X)</span>
+                            </div>
+                            <p class="api-desc">Returns hard labels based on whether nodes fall into the source-reachable partition (1) or non-reachable partition (0).</p>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 1.5rem;">
+                        <img src="gifs/mincut_propagation.gif" alt="Min-Cut Propagation Showcase" class="demo-gif" style="max-width: 500px; border-radius: 12px; border: 1px solid var(--card-border);">
+                    </div>
+                </section>
+
+                <section id="spectral-prop" class="docs-section">
+                    <h2>SpectralLabelPropagator</h2>
+                    <p>The spectral propagator projects nodes into a low-dimensional manifold using the first $k$ eigenvectors of the graph Laplacian matrix. It then trains an SVM classifier with an RBF kernel on these global spectral coordinates to predict unlabeled nodes.</p>
+
+                    <div class="api-class-block">
+                        <div class="api-class-header">
+                            <span class="keyword">class</span> graphalp.label_propagation.<span class="name">SpectralLabelPropagator</span><span class="params">(graph, n_components=2)</span>
+                        </div>
+                        <div class="api-desc">
+                            Laplacian embedding transductive SVM label propagator.
+                        </div>
+                        
+                        <div class="api-table-wrapper">
+                            <table class="api-table">
+                                <thead>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Type</th>
+                                        <th>Default</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="param-name">graph</td>
+                                        <td class="param-type">nx.Graph</td>
+                                        <td class="param-desc">-</td>
+                                        <td class="param-desc">The graph structure to embed.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="param-name">n_components</td>
+                                        <td class="param-type">int</td>
+                                        <td class="param-desc">2</td>
+                                        <td class="param-desc">Number of Laplacian eigenvectors to compute for the embedding space.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="api-methods-title">Methods</div>
+                        
+                        <div class="api-method-block">
+                            <div class="api-method-header">
+                                <span class="name">fit</span><span class="params">(X, y)</span>
+                            </div>
+                            <p class="api-desc">Fits an RBF Support Vector Machine on the pre-computed spectral coordinates of the labeled subset.</p>
+                        </div>
+
+                        <div class="api-method-block">
+                            <div class="api-method-header">
+                                <span class="name">predict_probabilities</span><span class="params">(X)</span>
+                            </div>
+                            <p class="api-desc">Returns SVM predict probability scores for Class 1.</p>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 1.5rem;">
+                        <img src="gifs/spectral_propagation.gif" alt="Spectral Propagation Showcase" class="demo-gif" style="max-width: 500px; border-radius: 12px; border: 1px solid var(--card-border);">
+                    </div>
+                </section>
+
+                <section id="gcn-prop" class="docs-section">
+                    <h2>GCNLabelPropagator</h2>
+                    <p>The GCN propagator implements localized symmetric normalized convolutions based on Kipf & Welling's Graph Convolutional Networks. It diffuses label indicators through local neighborhoods layer-by-layer without training neural weights.</p>
+                    
+                    <div class="math-block">
+                        H^(l+1) = D~^-1/2 * A~ * D~^-1/2 * H^(l)
+                    </div>
+
+                    <div class="api-class-block">
+                        <div class="api-class-header">
+                            <span class="keyword">class</span> graphalp.label_propagation.<span class="name">GCNLabelPropagator</span><span class="params">(graph, n_layers=2)</span>
+                        </div>
+                        <div class="api-desc">
+                            Symmetric Normalized Adjacency GCN label diffusion model.
+                        </div>
+
+                        <div class="api-methods-title">Methods</div>
+                        
+                        <div class="api-method-block">
+                            <div class="api-method-header">
+                                <span class="name">fit</span><span class="params">(X, y)</span>
+                            </div>
+                            <p class="api-desc">Performs neighborhood message passing. Dynamically adjusts propagation hops ($L$) based on the seed nodes' shortest paths.</p>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 1.5rem;">
+                        <img src="gifs/gcn_propagation.gif" alt="GCN Propagation Showcase" class="demo-gif" style="max-width: 500px; border-radius: 12px; border: 1px solid var(--card-border);">
+                    </div>
+                </section>
+
+                <!-- Section 5: Active Learning API -->
+                <section id="harmonic-greedy" class="docs-section">
+                    <h2>HarmonicGreedySampler</h2>
+                    <p>The expected risk minimization (ERM) active sampler. For every candidate unlabeled node, this sampler simulates querying it with both possible labels (0 and 1) and computes the expected graph-wide prediction risk. It queries the node that minimizes this future expected uncertainty.</p>
+                    
+                    <div class="math-block">
+                        Expected_Risk(i) = p1 * Risk(Labels U {i:1}) + p0 * Risk(Labels U {i:0})
+                    </div>
+
+                    <div class="api-class-block">
+                        <div class="api-class-header">
+                            <span class="keyword">class</span> graphalp.active_learning.<span class="name">HarmonicGreedySampler</span><span class="params">(graph)</span>
+                        </div>
+                        <div class="api-desc">
+                            Expected risk minimization active learning sampler.
+                        </div>
+
+                        <div class="api-methods-title">Methods</div>
+                        
+                        <div class="api-method-block">
+                            <div class="api-method-header">
+                                <span class="name">fit</span><span class="params">(X, y)</span>
+                            </div>
+                            <p class="api-desc">Fits the underlying Harmonic propagator on current labels.</p>
+                        </div>
+
+                        <div class="api-method-block">
+                            <div class="api-method-header">
+                                <span class="name">sample</span><span class="params">()</span>
+                            </div>
+                            <p class="api-desc">Evaluates expected risk for all unlabeled nodes and returns the ID of the node achieving the lowest future risk.</p>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 1.5rem;">
+                        <img src="gifs/harmonic_greedy_sampler.gif" alt="Harmonic Greedy Sampler Showcase" class="demo-gif" style="max-width: 500px; border-radius: 12px; border: 1px solid var(--card-border);">
+                    </div>
+                </section>
+
+                <section id="s2-sampler" class="docs-section">
+                    <h2>S2Sampler</h2>
+                    <p>The S2 active sampler (Dasarathy et al., 2015). It bisects boundaries by pruning edges with conflicting labels, finding the shortest path in the resulting graph between Class 0 and Class 1 subgraphs, and querying the middle node along that path.</p>
+
+                    <div class="api-class-block">
+                        <div class="api-class-header">
+                            <span class="keyword">class</span> graphalp.active_learning.<span class="name">S2Sampler</span><span class="params">(graph, fallback_sampler=None)</span>
+                        </div>
+                        <div class="api-desc">
+                            S2 active learning sampler for graph boundary cuts.
+                        </div>
+                        
+                        <div class="api-table-wrapper">
+                            <table class="api-table">
+                                <thead>
+                                    <tr>
+                                        <th>Parameter</th>
+                                        <th>Type</th>
+                                        <th>Default</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="param-name">graph</td>
+                                        <td class="param-type">nx.Graph</td>
+                                        <td class="param-desc">-</td>
+                                        <td class="param-desc">The graph structure to sample nodes from.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="param-name">fallback_sampler</td>
+                                        <td class="param-type">Sampler</td>
+                                        <td class="param-desc">RandomSampler</td>
+                                        <td class="param-desc">Sampler used if seeds do not cover both classes or no path connects them.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="api-methods-title">Methods</div>
+                        
+                        <div class="api-method-block">
+                            <div class="api-method-header">
+                                <span class="name">sample</span><span class="params">()</span>
+                            </div>
+                            <p class="api-desc">Finds the shortest path connecting different label groups and returns the middle node.</p>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 1.5rem;">
+                        <img src="gifs/s2_sampler.gif" alt="S2 Sampler Showcase" class="demo-gif" style="max-width: 500px; border-radius: 12px; border: 1px solid var(--card-border);">
+                    </div>
+                </section>
+
+                <section id="featprop-sampler" class="docs-section">
+                    <h2>FeatPropSampler</h2>
+                    <p>The FeatProp sampler (Wu et al., 2019). It diffuses node features (using GCN's normalized adjacency operators) across the graph layout, blending them with neighbors, and then solves a K-Medoids clustering problem to identify key landmark centroids to query.</p>
+
+                    <div class="api-class-block">
+                        <div class="api-class-header">
+                            <span class="keyword">class</span> graphalp.active_learning.<span class="name">FeatPropSampler</span><span class="params">(graph, features=None, n_prop_steps=2)</span>
+                        </div>
+                        <div class="api-desc">
+                            Feature propagation and K-Medoids representative node sampler.
+                        </div>
+
+                        <div class="api-methods-title">Methods</div>
+                        
+                        <div class="api-method-block">
+                            <div class="api-method-header">
+                                <span class="name">sample</span><span class="params">()</span>
+                            </div>
+                            <p class="api-desc">Selects the node that minimizes the K-Medoids distance objective on the convolved feature space.</p>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 1.5rem;">
+                        <img src="gifs/featprop_sampler.gif" alt="FeatProp Sampler Showcase" class="demo-gif" style="max-width: 500px; border-radius: 12px; border: 1px solid var(--card-border);">
+                    </div>
+                </section>
+
+                <section id="random-sampler" class="docs-section">
+                    <h2>RandomSampler</h2>
+                    <p>The standard random baseline. It samples nodes uniformly at random from the set of unlabeled nodes. Useful for measuring active learning performance improvements.</p>
+
+                    <div class="api-class-block">
+                        <div class="api-class-header">
+                            <span class="keyword">class</span> graphalp.active_learning.<span class="name">RandomSampler</span><span class="params">(graph)</span>
+                        </div>
+                        <div class="api-desc">
+                            Uniform random active learning sampler.
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 1.5rem;">
+                        <img src="gifs/random_sampler.gif" alt="Random Sampler Showcase" class="demo-gif" style="max-width: 500px; border-radius: 12px; border: 1px solid var(--card-border);">
+                    </div>
+                </section>
+
+                <!-- Section 6: Benchmarks -->
+                <section id="benchmarks" class="docs-section">
+                    <h2>Simulation Benchmarks</h2>
+                    <p>Quantitative benchmarks are critical to verify active learning benefits. GraphALP includes simulated tests run on multi-community structures (e.g. SBM communities) to trace expected risk reduction and accuracy curves over consecutive query rounds.</p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+                        <div style="text-align: center;">
+                            <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Expected Risk Reduction</h4>
+                            <img src="images/graph5_risk.png" alt="Graph 5 Risk Benchmarks" class="benchmark-chart" style="width: 100%; border-radius: 12px;">
+                        </div>
+                        <div style="text-align: center;">
+                            <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Prediction Accuracy</h4>
+                            <img src="images/graph5_accuracy.png" alt="Graph 5 Accuracy Benchmarks" class="benchmark-chart" style="width: 100%; border-radius: 12px;">
+                        </div>
+                    </div>
+
+                    <p style="margin-top: 1.5rem;"><strong>Analysis:</strong> The plots demonstrate that <code>HarmonicGreedy</code> (Expected Risk Minimizer) and <code>FeatProp</code> sampler (K-Medoids centroid coverage) reduce model uncertainty (Graph Risk) and boost label prediction accuracy significantly faster than the <code>Random</code> query baseline, requiring up to 50% fewer labeled nodes to reach matching accuracy thresholds.</p>
+                </section>
+            </main>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>© 2026 GraphALP Demos. Developed in Python, Jupyter, and Vanilla Web Technologies.</p>
+            <p>Hosted with 💜 on GitHub Pages.</p>
+        </footer>
+    </div>
+
+    <!-- Custom JS files -->
+    <script src="js/docs.js"></script>
+</body>
+</html>

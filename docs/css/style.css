@@ -1059,3 +1059,308 @@ h1, h2, h3, h4, h5, h6 {
         height: 300px;
     }
 }
+
+/* ==========================================================================
+   Documentation Layout & API Reference Styles
+   ========================================================================== */
+
+.docs-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 2.5rem;
+    align-items: start;
+    margin-top: 1.5rem;
+}
+
+/* Sidebar Styling */
+.docs-sidebar {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 1.5rem;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    position: sticky;
+    top: 2rem;
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+}
+
+.docs-sidebar::-webkit-scrollbar {
+    width: 3px;
+}
+
+.docs-sidebar::-webkit-scrollbar-thumb {
+    background: var(--card-border);
+    border-radius: 9999px;
+}
+
+.sidebar-search {
+    margin-bottom: 1.5rem;
+}
+
+.sidebar-search input {
+    width: 100%;
+    background: #090d16;
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    outline: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    transition: var(--transition);
+}
+
+.sidebar-search input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.2);
+}
+
+.nav-section {
+    margin-bottom: 1.5rem;
+}
+
+.nav-section h4 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    padding-bottom: 0.25rem;
+}
+
+.nav-section ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.nav-section a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    display: block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: var(--transition);
+}
+
+.nav-section a:hover, .nav-section a.active {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.nav-section a.active {
+    border-left: 2px solid var(--primary);
+    padding-left: 0.4rem;
+}
+
+/* Docs Content Layout */
+.docs-content {
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+}
+
+.docs-section {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 24px;
+    padding: 2.5rem;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.docs-section h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 0.5rem;
+}
+
+.docs-section p {
+    color: var(--text-secondary);
+    margin-bottom: 1.25rem;
+    line-height: 1.7;
+}
+
+/* API Blocks mimicking Sphinx */
+.api-class-block {
+    border-left: 3px solid var(--primary);
+    background: rgba(9, 13, 22, 0.5);
+    border-radius: 0 16px 16px 0;
+    padding: 1.5rem;
+    margin: 2rem 0;
+}
+
+.api-class-header {
+    font-family: monospace;
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #a78bfa;
+}
+
+.api-class-header span.keyword {
+    color: #f43f5e;
+}
+
+.api-class-header span.name {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.api-class-header span.params {
+    color: var(--text-secondary);
+}
+
+.api-desc {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.25rem;
+}
+
+.api-methods-title {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+}
+
+.api-method-block {
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    padding-top: 1rem;
+    margin-top: 1rem;
+}
+
+.api-method-header {
+    font-family: monospace;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #2dd4bf;
+    margin-bottom: 0.5rem;
+}
+
+.api-method-header span.keyword {
+    color: #fb7185;
+}
+
+.api-method-header span.name {
+    color: var(--text-primary);
+}
+
+/* Parameter & Return Tables */
+.api-table-wrapper {
+    overflow-x: auto;
+    margin: 1rem 0;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.api-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    text-align: left;
+}
+
+.api-table th, .api-table td {
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.api-table th {
+    background: rgba(15, 23, 42, 0.6);
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.api-table td.param-name {
+    font-family: monospace;
+    color: #f59e0b;
+    font-weight: 600;
+    width: 25%;
+}
+
+.api-table td.param-type {
+    font-family: monospace;
+    color: var(--text-muted);
+    width: 20%;
+}
+
+.api-table td.param-desc {
+    color: var(--text-secondary);
+}
+
+/* Code Snippets with Copy Button */
+.code-block-wrapper {
+    position: relative;
+    background: #090d16;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    margin: 1.25rem 0;
+    overflow: hidden;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.8);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    padding: 0.4rem 1rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: monospace;
+}
+
+.code-header .copy-btn {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.code-header .copy-btn:hover {
+    color: var(--text-primary);
+}
+
+.code-block-wrapper pre {
+    padding: 1rem;
+    margin: 0;
+    overflow-x: auto;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #e2e8f0;
+}
+
+/* Math block additions */
+.docs-section .math-block {
+    margin: 1.25rem 0;
+}
+
+/* Docs responsive tweaks */
+@media (max-width: 1024px) {
+    .docs-layout {
+        grid-template-columns: 1fr;
+    }
+    .docs-sidebar {
+        position: static;
+        max-height: none;
+    }
+}
+
